@@ -137,7 +137,7 @@ final class Feat {
         }
     }
 
-    private static final int BUILD_VER = 121;
+    private static final int BUILD_VER = 123;
     /** 本版更新内容（欢迎弹窗展示，每版记得改） */
     private static final String F17 =
             "· 新增「环境检测绕过」「自动签到」（均自动开启）\n"
@@ -145,7 +145,7 @@ final class Feat {
             + "· 关于界面新增「作者酷安主页」入口\n"
             + "· 新增 GitHub 开源仓库入口";
 
-    private static final String VERSION_NAME = "1.5.0";
+    private static final String VERSION_NAME = "1.4.2";
     private static final boolean F_OVERLAY = true;
 
     private static final String TAG = "[AnimRep] ";
@@ -3067,6 +3067,7 @@ final class Feat {
     }
 
     private static void openPanel(final android.app.Activity act) {
+        newPaletteSession();
         android.view.View decorV = act.getWindow() == null ? null : act.getWindow().peekDecorView();
         if (!(decorV instanceof android.view.ViewGroup)) {
             return;
@@ -3104,6 +3105,7 @@ final class Feat {
     /** 欢迎弹窗：每次启动弹一次；勾选「下次不再显示」后永久关闭 */
     private static volatile boolean sWelcomeDone;
     private static void showWelcome(final android.app.Activity act) {
+        newPaletteSession();
         if (act == null || act.isFinishing()) {
             return;
         }
@@ -3702,6 +3704,11 @@ final class Feat {
 
     static int verNo() {
         return BUILD_VER;
+    }
+
+    /** 每次打开面板/欢迎页时调用，下一轮取色重新随机。 */
+    static void newPaletteSession() {
+        sPal = null;
     }
 
     static int[] pickPalette() {
