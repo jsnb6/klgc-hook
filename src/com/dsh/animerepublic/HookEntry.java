@@ -2064,7 +2064,7 @@ final class Feat {
                 try {
                     android.content.Intent it = new android.content.Intent(
                             android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse("https://github.com/OWNER/REPO"));
+                            android.net.Uri.parse("https://github.com/jsnb6/klgc-hook"));
                     it.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
                     act.startActivity(it);
                 } catch (Throwable t) {
@@ -3219,7 +3219,7 @@ final class Feat {
                 public void onClick(android.view.View v) {
                     try {
                         android.content.Intent it = new android.content.Intent(android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://github.com/OWNER/REPO"));
+                                android.net.Uri.parse("https://github.com/jsnb6/klgc-hook"));
                         it.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
                         act.startActivity(it);
                     } catch (Throwable t) {
