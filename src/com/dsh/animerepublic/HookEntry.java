@@ -141,8 +141,9 @@ final class Feat {
     /** 本版更新内容（欢迎弹窗展示，每版记得改） */
     private static final String F17 =
             "· 新增「环境检测绕过」「自动签到」（均自动开启）\n"
-            + "· 新增「作者酷安主页」入口\n"
-            + "· 新增模块桌面图标，可查看启用状态等信息";
+            + "· 新增模块桌面图标，可查看启用状态等信息\n"
+            + "· 关于界面新增「作者酷安主页」入口\n"
+            + "· 新增 GitHub 开源仓库入口";
 
     private static final String VERSION_NAME = "1.5.0";
     private static final boolean F_OVERLAY = true;
