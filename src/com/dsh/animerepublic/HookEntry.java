@@ -137,7 +137,7 @@ final class Feat {
         }
     }
 
-    private static final int BUILD_VER = 123;
+    private static final int BUILD_VER = 124;
     /** 本版更新内容（欢迎弹窗展示，每版记得改） */
     private static final String F17 =
             "· 新增「环境检测绕过」「自动签到」（均自动开启）\n"
@@ -145,7 +145,7 @@ final class Feat {
             + "· 关于界面新增「作者酷安主页」入口\n"
             + "· 新增 GitHub 开源仓库入口";
 
-    private static final String VERSION_NAME = "1.4.2";
+    private static final String VERSION_NAME = "1.4.3";
     private static final boolean F_OVERLAY = true;
 
     private static final String TAG = "[AnimRep] ";
@@ -3711,6 +3711,16 @@ final class Feat {
         sPal = null;
     }
 
+    /** 把任意配色压到统一的柔和档：饱和度 ≤0.26、明度 ≥0.95、alpha ≤0x5A。 */
+    static int soften(int color) {
+        float[] hsv = new float[3];
+        android.graphics.Color.RGBToHSV((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, hsv);
+        hsv[1] = Math.min(hsv[1], 0.26f);
+        hsv[2] = Math.max(hsv[2], 0.95f);
+        int alpha = Math.min((color >>> 24) & 0xFF, 0x5A);
+        return android.graphics.Color.HSVToColor(alpha, hsv);
+    }
+
     static int[] pickPalette() {
         int[] p = sPal;
         if (p != null) {
@@ -3720,6 +3730,12 @@ final class Feat {
             p = PALETTES[new java.util.Random(System.nanoTime()).nextInt(PALETTES.length)];
         } catch (Throwable t) {
             p = PALETTES[0];
+        }
+        try {
+            for (int i = 0; i < p.length; i++) {
+                p[i] = soften(p[i]);
+            }
+        } catch (Throwable ignored) {
         }
         sPal = p;
         return p;
