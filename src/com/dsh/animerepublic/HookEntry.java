@@ -137,14 +137,14 @@ final class Feat {
         }
     }
 
-    private static final int BUILD_VER = 120;
+    private static final int BUILD_VER = 121;
     /** 本版更新内容（欢迎弹窗展示，每版记得改） */
     private static final String F17 =
             "· 新增「环境检测绕过」「自动签到」（均自动开启）\n"
             + "· 新增「作者酷安主页」入口\n"
             + "· 新增模块桌面图标，可查看启用状态等信息";
 
-    private static final String VERSION_NAME = "1.4.1";
+    private static final String VERSION_NAME = "1.5.0";
     private static final boolean F_OVERLAY = true;
 
     private static final String TAG = "[AnimRep] ";
@@ -2092,6 +2092,25 @@ final class Feat {
             }
         });
         c1.addView(authorRow);
+        miuDivider(act, c1);
+
+        final android.widget.LinearLayout ghRow = miuInfoRow(act, "源", 0xFF2F6BFF,
+                "GitHub 开源仓库", "github.com/jsnb6/klgc-hook", miuArrow(act));
+        ghRow.setClickable(true);
+        ghRow.setOnClickListener(new android.view.View.OnClickListener() {
+            public void onClick(android.view.View v) {
+                try {
+                    android.content.Intent it = new android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://github.com/jsnb6/klgc-hook"));
+                    it.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    act.startActivity(it);
+                } catch (Throwable t) {
+                    h26("L106" + t);
+                }
+            }
+        });
+        c1.addView(ghRow);
         page.addView(c1);
 
         android.widget.TextView foot = miuText(act, "本破解免费使用", 12f, MIU_NAV_OFF, false);
