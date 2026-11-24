@@ -32,14 +32,17 @@ jobs:
           # build-tools（aapt / zipalign / apksigner）
           curl -fsSL https://dl.google.com/android/repository/build-tools_r33-linux.zip -o /tmp/bt.zip
           unzip -q /tmp/bt.zip -d "$HOME/bt"
-          BT_DIR="$(find "$HOME/bt" -maxdepth 2 -name aapt -printf '%h\n' | head -1)"
+          BT_DIR="$(find "$HOME/bt" -maxdepth 3 -name aapt -printf '%h\n' | head -1)"
+          [ -n "$BT_DIR" ] || { echo "找不到 aapt"; ls -R "$HOME/bt" | head; exit 1; }
           echo "BUILD_TOOLS=$BT_DIR" >> "$GITHUB_ENV"
 
       - name: 安装 R8
         run: |
           mkdir -p "$HOME/.m2/repository/com/android/tools/r8/8.2.42"
-          curl -fsSL https://repo1.maven.org/maven2/com/android/tools/r8/8.2.42/r8-8.2.42.jar \
-            -o "$HOME/.m2/repository/com/android/tools/r8/8.2.42/r8-8.2.42.jar"
+          curl -fsSL https://dl.google.com/dl/android/maven2/com/android/tools/r8/8.2.42/r8-8.2.42.jar \
+            -o "$HOME/.m2/repository/com/android/tools/r8/8.2.42/r8-8.2.42.jar" \
+            || curl -fsSL https://maven.aliyun.com/repository/google/com/android/tools/r8/8.2.42/r8-8.2.42.jar \
+               -o "$HOME/.m2/repository/com/android/tools/r8/8.2.42/r8-8.2.42.jar"
           echo "R8_JAR=$HOME/.m2/repository/com/android/tools/r8/8.2.42/r8-8.2.42.jar" >> "$GITHUB_ENV"
 
       - name: 拉取 libxposed 客户端库
