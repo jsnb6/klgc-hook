@@ -28,7 +28,9 @@ jobs:
           # platform-33（提供 android.jar）
           curl -fsSL https://dl.google.com/android/repository/platform-33_r02.zip -o /tmp/platform.zip
           unzip -q /tmp/platform.zip -d "$HOME/sdk"
-          echo "ANDROID_JAR=$HOME/sdk/android-33/android.jar" >> "$GITHUB_ENV"
+          AJ="$(find "$HOME/sdk" -name android.jar | head -1)"
+          [ -n "$AJ" ] || { echo "找不到 android.jar"; ls -R "$HOME/sdk" | head -20; exit 1; }
+          echo "ANDROID_JAR=$AJ" >> "$GITHUB_ENV"
           # build-tools（aapt / zipalign / apksigner）
           curl -fsSL https://dl.google.com/android/repository/build-tools_r33-linux.zip -o /tmp/bt.zip
           unzip -q /tmp/bt.zip -d "$HOME/bt"
