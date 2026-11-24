@@ -4,10 +4,17 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 mkdir -p libs build/tmp-libs
-BASE="https://repo1.maven.org/maven2/io/github/libxposed"
+MIRRORS=("https://repo1.maven.org/maven2" "https://maven.aliyun.com/repository/central" "https://repo.huaweicloud.com/repository/maven")
 for art in api interface service; do
   ver="102.0.0"
-  curl -fsSL "$BASE/$art/$ver/$art-$ver.aar" -o "build/tmp-libs/$art.aar"
+  ok=0
+  for base in "${MIRRORS[@]}"; do
+    for try in 1 2 3; do
+      if curl -fsSL --retry 2 --retry-delay 3 "$base/io/github/libxposed/$art/$ver/$art-$ver.aar" -o "build/tmp-libs/$art.aar"; then ok=1; break 2; fi
+      sleep $((try*3))
+    done
+  done
+  [ "$ok" = 1 ] || { echo "下载失败：$art（所有镜像均不可用）"; exit 1; }
   unzip -o -q "build/tmp-libs/$art.aar" classes.jar -d "build/tmp-libs/$art"
   cp "build/tmp-libs/$art/classes.jar" "libs/libxposed-$art-102.jar"
   echo "ok  libs/libxposed-$art-102.jar"
