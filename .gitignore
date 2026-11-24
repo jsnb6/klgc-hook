@@ -1,0 +1,23 @@
+# 构建产物
+build/
+out/
+*.idsig
+*.apk
+*.aab
+
+# 本地依赖（体积大，用 scripts/fetch-libs.sh 获取）
+libs/*.jar
+
+# 签名材料（绝不提交）
+*.keystore
+*.jks
+*.p12
+keystore.properties
+
+# IDE / 系统
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+local.properties

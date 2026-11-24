@@ -1,0 +1,23 @@
+name: 功能建议
+description: 希望新增的开关或行为改进
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: 使用场景
+      description: 你遇到的具体问题是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 期望的行为
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 补充信息（可选的截图、类名、日志片段）
+      render: text

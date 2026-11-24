@@ -1,0 +1,24 @@
+# 第三方组件与许可
+
+本项目的部分代码与资源来自第三方，遵循其原始许可：
+
+| 组件 | 来源 | 许可 |
+| --- | --- | --- |
+| libxposed API / service / interface | https://github.com/libxposed/api | Apache-2.0 |
+| LiquidGlassView（`src/com/qmdeve/liquidglass/`） | https://github.com/QmDeve/AndroidLiquidGlassView | MIT |
+| legacy Xposed API 兼容垫片（`src/de/robv/android/xposed/`） | 本项目自行实现，仅保留方法签名形态 | GPL-3.0 |
+
+构建期依赖（不随仓库分发）：
+
+- Android SDK `android.jar`（Android SDK License）
+- R8（BSD-3-Clause）
+
+## 不含内容
+
+本仓库**不包含**：
+
+- 目标应用（`com.sdmnfowa.soad.p1`）的 APK、反编译代码、资源或图标；
+- 任何视频、字幕、封面等受版权保护的内容；
+- 任何签名密钥、账号凭据或他人隐私数据。
+
+图标 `icon/ic_launcher.png` 为本项目自绘生成（渐变 + 字母），不使用任何第三方美术素材。

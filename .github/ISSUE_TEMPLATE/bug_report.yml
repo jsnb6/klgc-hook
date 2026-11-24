@@ -1,0 +1,59 @@
+name: Bug 报告
+description: 模块行为异常、崩溃或功能不生效
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先搜索已有 issue。**不要**在 issue 中粘贴账号、手机号、设备序列号等隐私信息。
+  - type: input
+    id: module-ver
+    attributes:
+      label: 模块版本
+      placeholder: 例如 1.4.1 (120)
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: 运行环境
+      placeholder: 例如 Android 15 / LSPosed 2.2.1 (7948) / MIUI 15
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 受影响范围
+      options:
+        - 启动 / 崩溃
+        - 4K 画质
+        - 广告
+        - 会员态
+        - 界面开关（任务页 / 底部透明）
+        - 状态页
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开宿主应用
+        2. 长按左上角头像
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果 / 实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志（可选）
+      description: 请先移除个人信息。LSPosed 日志里搜 `klgc` 或 `AnimRep` 即可。
+      render: text

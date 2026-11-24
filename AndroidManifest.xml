@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.klgc.animerepublic"
+    android:versionCode="120"
+    android:versionName="1.4.1">
+    <queries>
+        <package android:name="com.sdmnfowa.soad.p1" />
+        <package android:name="org.lsposed.manager" />
+    </queries>
+    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="33" />
+    <application
+        android:label="klgc hook"
+        android:allowBackup="false"
+        android:hasCode="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher">
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposeddescription" android:value="去广告 / 4K 解锁 / 本地会员" />
+        <activity
+            android:name="com.dsh.animerepublic.SettingsActivity"
+            android:exported="true"
+            android:label="klgc hook"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <provider
+            android:name="io.github.libxposed.service.XposedProvider"
+            android:authorities="com.klgc.animerepublic.XposedService"
+            android:exported="true" />
+        <provider
+            android:name="com.dsh.animerepublic.StatusProvider"
+            android:authorities="com.klgc.animerepublic.status"
+            android:exported="true" />
+    </application>
+</manifest>

@@ -1,0 +1,56 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: 安装 Android SDK 组件
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq unzip curl
+          # platform-33（提供 android.jar）
+          curl -fsSL https://dl.google.com/android/repository/platform-33_r02.zip -o /tmp/platform.zip
+          unzip -q /tmp/platform.zip -d "$HOME/sdk"
+          echo "ANDROID_JAR=$HOME/sdk/android-33/android.jar" >> "$GITHUB_ENV"
+          # build-tools（aapt / zipalign / apksigner）
+          curl -fsSL https://dl.google.com/android/repository/build-tools_r33-linux.zip -o /tmp/bt.zip
+          unzip -q /tmp/bt.zip -d "$HOME/bt"
+          BT_DIR="$(find "$HOME/bt" -maxdepth 2 -name aapt -printf '%h\n' | head -1)"
+          echo "BUILD_TOOLS=$BT_DIR" >> "$GITHUB_ENV"
+
+      - name: 安装 R8
+        run: |
+          mkdir -p "$HOME/.m2/repository/com/android/tools/r8/8.2.42"
+          curl -fsSL https://repo1.maven.org/maven2/com/android/tools/r8/8.2.42/r8-8.2.42.jar \
+            -o "$HOME/.m2/repository/com/android/tools/r8/8.2.42/r8-8.2.42.jar"
+          echo "R8_JAR=$HOME/.m2/repository/com/android/tools/r8/8.2.42/r8-8.2.42.jar" >> "$GITHUB_ENV"
+
+      - name: 拉取 libxposed 客户端库
+        run: bash scripts/fetch-libs.sh
+
+      - name: 构建
+        run: bash build.sh
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: klgc-hook-apk
+          path: out/*.apk
+          if-no-files-found: error
