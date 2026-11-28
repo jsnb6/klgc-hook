@@ -1,0 +1,8 @@
+{
+  "versionCode": 149,
+  "versionName": "1.4.29",
+  "minSupported": 145,
+  "force": false,
+  "url": "https://github.com/jsnb6/klgc-hook/releases/download/v1.4.29/klgc-hook-v1.4.29.apk",
+  "note": "修复 Vector 上因 hook native 方法导致的闪退；关于页新增「检查更新」"
+}
