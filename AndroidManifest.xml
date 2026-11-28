@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.klgc.animerepublic"
-    android:versionCode="145"
-    android:versionName="1.4.25">
+    android:versionCode="146"
+    android:versionName="1.4.26">
     <queries>
         <package android:name="com.sdmnfowa.soad.p1" />
         <package android:name="org.lsposed.manager" />

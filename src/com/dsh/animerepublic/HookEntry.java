@@ -138,7 +138,7 @@ final class Feat {
         }
     }
 
-    /** 写字符串配置：SP + 镜像到 animrep_cfg.txt（保留其它行） */
+    /** 写字符串配置：只写宿主 SharedPreferences */
     private static void setCfgStr(String key, String v) {
         try {
             SharedPreferences p = cfgPrefs();
@@ -147,39 +147,9 @@ final class Feat {
             }
         } catch (Throwable ignored) {
         }
-        try {
-            java.io.File f = new java.io.File("/sdcard/Download/DSH-Go/animrep_cfg.txt");
-            java.util.List<String> out = new java.util.ArrayList<String>();
-            boolean done = false;
-            if (f.exists()) {
-                java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
-                        new java.io.FileInputStream(f), "UTF-8"));
-                String line;
-                while ((line = r.readLine()) != null) {
-                    if (line.trim().startsWith(key + "=")) {
-                        out.add(key + "=" + v);
-                        done = true;
-                    } else {
-                        out.add(line);
-                    }
-                }
-                r.close();
-            }
-            if (!done) {
-                out.add(key + "=" + v);
-            }
-            java.io.FileWriter w = new java.io.FileWriter(f, false);
-            for (int i = 0; i < out.size(); i++) {
-                w.write(out.get(i));
-                w.write("\n");
-            }
-            w.flush();
-            w.close();
-        } catch (Throwable ignored) {
-        }
     }
 
-    private static final int BUILD_VER = 145;
+    private static final int BUILD_VER = 146;
     /** 本版更新内容（欢迎弹窗展示，每版记得改） */
     private static final String F17 =
             "· 适配 Vector（JingMatrix）框架，模块在 API 102 下正常注入\n"
@@ -193,7 +163,7 @@ final class Feat {
     private static final String GOOD_HOST = "rgxbm.xiaoxiangkj.com";
     private static final String SIG_OFFICIAL =
             "de17140c22b492a9e38d188c675a185d9d67e1607342f03ed0a181d9f3696e74";
-    private static final String VERSION_NAME = "1.4.25";
+    private static final String VERSION_NAME = "1.4.26";
     private static final boolean F_OVERLAY = true;
 
     private static final String TAG = "[AnimRep] ";
@@ -265,7 +235,7 @@ final class Feat {
         return c.getTimeInMillis();
     }
 
-    /** 读取字符串配置：先查 SharedPreferences，再查 /sdcard/Download/DSH-Go/animrep_cfg.txt 的 key=value 行 */
+    /** 读取字符串配置：只查宿主 SharedPreferences */
     private static String cfgStr(String key, String def) {
         try {
             SharedPreferences p = cfgPrefs();
@@ -274,25 +244,6 @@ final class Feat {
                 if (v != null && v.length() > 0) {
                     return v;
                 }
-            }
-        } catch (Throwable ignored) {
-        }
-        try {
-            java.io.File f = new java.io.File("/sdcard/Download/DSH-Go/animrep_cfg.txt");
-            if (f.exists()) {
-                java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
-                        new java.io.FileInputStream(f), "UTF-8"));
-                String line;
-                while ((line = r.readLine()) != null) {
-                    line = line.trim();
-                    int eq = line.indexOf('=');
-                    if (eq > 0 && line.substring(0, eq).trim().equals(key)) {
-                        String v = line.substring(eq + 1).trim();
-                        r.close();
-                        return v;
-                    }
-                }
-                r.close();
             }
         } catch (Throwable ignored) {
         }
