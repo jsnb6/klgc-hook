@@ -1,8 +1,8 @@
 {
-  "versionCode": 160,
-  "versionName": "1.5.2",
+  "versionCode": 161,
+  "versionName": "1.5.3",
   "minSupported": 145,
   "force": false,
-  "url": "https://github.com/jsnb6/klgc-hook/releases/download/v1.5.2/klgc-hook-v1.5.2.apk",
-  "note": "打开应用后自动检查一次更新（之前只有开面板才检查）；自动检查间隔统一为 30 分钟"
+  "url": "https://github.com/jsnb6/klgc-hook/releases/download/v1.5.3/klgc-hook-v1.5.3.apk",
+  "note": "· 新增检查版本更新：打开应用或面板时自动检查，间隔 30 分钟\n· 优化 UI，修复可能导致崩溃的问题"
 }
