@@ -1,8 +1,8 @@
 {
-  "versionCode": 155,
-  "versionName": "1.4.35",
+  "versionCode": 156,
+  "versionName": "1.4.36",
   "minSupported": 145,
   "force": false,
-  "url": "https://github.com/jsnb6/klgc-hook/releases/download/v1.4.35/klgc-hook-v1.4.35.apk",
-  "note": "检查更新改为并发请求 7 个源（jsDelivr fastly/gcore、gitmirror、ghproxy 等国内可用镜像），2.5 秒超时，取最高版本"
+  "url": "https://github.com/jsnb6/klgc-hook/releases/download/v1.4.36/klgc-hook-v1.4.36.apk",
+  "note": "更新弹窗换成模块同款 Miuix 卡片；主按钮改为「前往网盘下载」，GitHub 直链作为次级入口"
 }
