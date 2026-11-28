@@ -1,8 +1,8 @@
 {
-  "versionCode": 152,
-  "versionName": "1.4.32",
+  "versionCode": 153,
+  "versionName": "1.4.33",
   "minSupported": 145,
   "force": false,
-  "url": "https://github.com/jsnb6/klgc-hook/releases/download/v1.4.32/klgc-hook-v1.4.32.apk",
-  "note": "修掉检查更新的取源顺序：先 raw，再 jsDelivr（带时间戳绕缓存），最后 GitHub API"
+  "url": "https://github.com/jsnb6/klgc-hook/releases/download/v1.4.33/klgc-hook-v1.4.33.apk",
+  "note": "检查更新改为 GitHub API 优先（不受 CDN 缓存影响），raw/jsDelivr 仅作兜底"
 }
