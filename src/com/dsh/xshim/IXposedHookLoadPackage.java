@@ -1,6 +1,6 @@
-package de.robv.android.xposed;
+package com.dsh.xshim;
 
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import com.dsh.xshim.callbacks.XC_LoadPackage;
 
 public interface IXposedHookLoadPackage {
     void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable;

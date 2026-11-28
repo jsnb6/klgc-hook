@@ -1,4 +1,4 @@
-package de.robv.android.xposed.callbacks;
+package com.dsh.xshim.callbacks;
 
 import android.content.pm.ApplicationInfo;
 

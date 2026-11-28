@@ -1,7 +1,7 @@
 package com.dsh.animerepublic;
 
-import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import com.dsh.xshim.XposedBridge;
+import com.dsh.xshim.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.XposedModule;
 import io.github.libxposed.api.XposedModuleInterface;
 

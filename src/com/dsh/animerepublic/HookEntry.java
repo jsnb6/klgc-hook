@@ -13,11 +13,11 @@ import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.List;
 
-import de.robv.android.xposed.IXposedHookLoadPackage;
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.XposedHelpers;
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import com.dsh.xshim.IXposedHookLoadPackage;
+import com.dsh.xshim.XC_MethodHook;
+import com.dsh.xshim.XposedBridge;
+import com.dsh.xshim.XposedHelpers;
+import com.dsh.xshim.callbacks.XC_LoadPackage;
 
 public class HookEntry implements IXposedHookLoadPackage {
 
@@ -43,7 +43,8 @@ public class HookEntry implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lp) {
-        if (!"com.sdmnfowa.soad.p1".equals(lp.packageName)) {
+        if (!"com.sdmnfowa.soad.p1".equals(lp.packageName)
+                ) {
             return;
         }
         mark("animrep3.log", "L2" + lp.processName);
@@ -52,7 +53,7 @@ public class HookEntry implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             mark("animrep3.log", "L3" + t);
             try {
-                de.robv.android.xposed.XposedBridge.log("L55" + t);
+                com.dsh.xshim.XposedBridge.log("L55" + t);
             } catch (Throwable ignored) {
             }
         }
@@ -137,19 +138,91 @@ final class Feat {
         }
     }
 
-    private static final int BUILD_VER = 124;
+    /** 写字符串配置：SP + 镜像到 animrep_cfg.txt（保留其它行） */
+    private static void setCfgStr(String key, String v) {
+        try {
+            SharedPreferences p = cfgPrefs();
+            if (p != null) {
+                p.edit().putString(key, v).apply();
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            java.io.File f = new java.io.File("/sdcard/Download/DSH-Go/animrep_cfg.txt");
+            java.util.List<String> out = new java.util.ArrayList<String>();
+            boolean done = false;
+            if (f.exists()) {
+                java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
+                        new java.io.FileInputStream(f), "UTF-8"));
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (line.trim().startsWith(key + "=")) {
+                        out.add(key + "=" + v);
+                        done = true;
+                    } else {
+                        out.add(line);
+                    }
+                }
+                r.close();
+            }
+            if (!done) {
+                out.add(key + "=" + v);
+            }
+            java.io.FileWriter w = new java.io.FileWriter(f, false);
+            for (int i = 0; i < out.size(); i++) {
+                w.write(out.get(i));
+                w.write("\n");
+            }
+            w.flush();
+            w.close();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static final int BUILD_VER = 145;
     /** 本版更新内容（欢迎弹窗展示，每版记得改） */
     private static final String F17 =
-            "· 新增「环境检测绕过」「自动签到」（均自动开启）\n"
-            + "· 新增模块桌面图标，可查看启用状态等信息\n"
-            + "· 关于界面新增「作者酷安主页」入口\n"
-            + "· 新增 GitHub 开源仓库入口";
+            "· 适配 Vector（JingMatrix）框架，模块在 API 102 下正常注入\n"
+            + "· 新增「修改会员时间」，默认永久会员，可在面板内按年/月/日自定义";
 
-    private static final String VERSION_NAME = "1.4.3";
+    private static final String SIG_CERT_DER =
+            "MIIDRzCCAi+gAwIBAgIEOZfzfDANBgkqhkiG9w0BAQsFADBTMQswCQYDVQQGEwJjbjELMAkGA1UECBMCYnYxCzAJBgNVBAcTAnBrMQ0wCwYDVQQKEwR0amF4MQ0wCwYDVQQLEwR0amF4MQwwCgYDVQQDEwN5enMwIBcNMjQwOTExMDEyODQ3WhgPMjA2MzAxMTAwMTI4NDdaMFMxCzAJBgNVBAYTAmNuMQswCQYDVQQIEwJidjELMAkGA1UEBxMCcGsxDTALBgNVBAoTBHRqYXgxDTALBgNVBAsTBHRqYXgxDDAKBgNVBAMTA3l6czCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKbcaD5vhksvYyvUvtLQvvacGv129oQE0dgTwxdfOHQAN1V3lcayud6BM3nY7Nr8YOUAWxS90fp9XhR3izmIXhYvH2ZvhsLaboICdmI1SAR35/rvOlxCeuzo5GEFF1e3ZcjU/BDUc/rgDU1jcoX6X5Kadhy/oo1mxr2fwRmVnU2ttvk5H8tMQjn/g6ReLnhfgyd866kdkyGC3BxMcER6P3dyEKNdqxBQseS8lxkWuPbi4V9hVcX6xAg4OMsxCXhp3BhmM7K2IJo73O1qXbKL3VltUHAMO8Sj6BLU4e+ZAUAChppQlJ2X3Pbdy+q5wFSWukOX7SZMjZonBW64FtKcVKsCAwEAAaMhMB8wHQYDVR0OBBYEFH+FmOVzIiG1d8ynjKIWUhaUo01dMA0GCSqGSIb3DQEBCwUAA4IBAQAg6UheCCOipgyP7gBHxQfI1gpClvXyFZg0MQz62hLnDzW4XQZNm3dw5t/FMb8f3FHT+JQ92GAw1kcu8a+ZyhDITMsalEToc/VUnwt1D7OTGIQsq6YABpxCvGOewZb1U/jxInB0U725CIurNab8Y1aspbZUiohKQ/qjwXmmZph1UMmXX5I4bXtsh0ueZlI3pdKCyH+nX1HhZiz3UtV2U9hljmm0PGvcyTv2S/1Zw2HLJkXS6NS/Or5JsiiIdwJeor3Fns57Ui9ENrLZyert1h8UP24W+AZfOIMTrl1x+OUd5cy5WC7J2VypY6VI+hgy1NsPb8EqTXahznIVqRZ6irhO";
+    private static final String[] BAD_HOSTS = {
+            "1.14.219.185:7090", "1.14.219.185", "qbfbf.zshtys888.com"};
+    private static final String BAD_HOST = "1.14.219.185:7090";
+    private static final String GOOD_HOST = "rgxbm.xiaoxiangkj.com";
+    private static final String SIG_OFFICIAL =
+            "de17140c22b492a9e38d188c675a185d9d67e1607342f03ed0a181d9f3696e74";
+    private static final String VERSION_NAME = "1.4.25";
     private static final boolean F_OVERLAY = true;
 
     private static final String TAG = "[AnimRep] ";
     private static final String PKG = "com.sdmnfowa.soad.p1";
+    private static final String[] TARGETS = {"com.sdmnfowa.soad.p1"};
+
+    private static boolean isTarget(String p) {
+        for (int i = 0; i < TARGETS.length; i++) {
+            if (TARGETS[i].equals(p)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String hostPkg() {
+        String p = lastPkg;
+        return p == null ? PKG : p;
+    }
+
+    private static String TARGET_NAME() {
+        String p = lastPkg;
+        if (p == null) {
+            return "动漫共和国";
+        }
+        return "动漫共和国";
+    }
+
+    private static volatile String lastPkg;
     private static final String PREFS = "animrep_state";
 
     private static final String F8 = "com.yy.myuko.shared.domain.ad.AdSlotVipExemption";
@@ -182,7 +255,73 @@ final class Feat {
     private static final String C_STATE_FLOW_KT = "kotlinx.coroutines.flow.StateFlowKt";
 
     private static final String KEY_FAKE_FLOW = "animrep_fake_membership_flow";
-    private static final long FAR_FUTURE_MS = 4070908800000L; // 2099-01-01T00:00:00Z
+    /** 会员到期时间默认值：本地时区的 9999-12-31 23:59:59（不能用 UTC 常量，否则东八区会显示 10000.1.1） */
+    private static final long FAR_FUTURE_MS = foreverMs0();
+
+    private static long foreverMs0() {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        c.clear();
+        c.set(9999, java.util.Calendar.DECEMBER, 31, 23, 59, 59);
+        return c.getTimeInMillis();
+    }
+
+    /** 读取字符串配置：先查 SharedPreferences，再查 /sdcard/Download/DSH-Go/animrep_cfg.txt 的 key=value 行 */
+    private static String cfgStr(String key, String def) {
+        try {
+            SharedPreferences p = cfgPrefs();
+            if (p != null) {
+                String v = p.getString(key, null);
+                if (v != null && v.length() > 0) {
+                    return v;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            java.io.File f = new java.io.File("/sdcard/Download/DSH-Go/animrep_cfg.txt");
+            if (f.exists()) {
+                java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
+                        new java.io.FileInputStream(f), "UTF-8"));
+                String line;
+                while ((line = r.readLine()) != null) {
+                    line = line.trim();
+                    int eq = line.indexOf('=');
+                    if (eq > 0 && line.substring(0, eq).trim().equals(key)) {
+                        String v = line.substring(eq + 1).trim();
+                        r.close();
+                        return v;
+                    }
+                }
+                r.close();
+            }
+        } catch (Throwable ignored) {
+        }
+        return def;
+    }
+
+    /** 会员到期毫秒：支持 member_expire=9999-12-31 或 2099-01-01 12:00:00 */
+    private static long memberExpireMs() {
+        String v = cfgStr("member_expire", "");
+        if (v.equalsIgnoreCase("forever")) {
+            return FAR_FUTURE_MS;
+        }
+        if (v.length() == 0) {
+            return FAR_FUTURE_MS;
+        }
+        String[] pats = {"yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"};
+        for (int i = 0; i < pats.length; i++) {
+            try {
+                java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(pats[i], java.util.Locale.US);
+                f.setLenient(false);
+                java.util.Date d = f.parse(v);
+                if (d != null) {
+                    return d.getTime();
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return FAR_FUTURE_MS;
+    }
     private static final long FAKE_REWARD_AMOUNT = 15L;
 
     /** 确定不产生用户奖励的广告位：只对这些位返回 VIP 免广告，避免误伤"看广告领奖励"入口 */
@@ -205,11 +344,13 @@ final class Feat {
     /* ------------------------------------------------------------ 入口 */
 
     void run(XC_LoadPackage.LoadPackageParam lp) {
+        rotateLog();
+        lastPkg = lp.packageName;
         if ("com.klgc.animerepublic".equals(lp.packageName)) {
             selfProbe(lp);
             return;
         }
-        if (!PKG.equals(lp.packageName)) {
+        if (!isTarget(lp.packageName)) {
             return;
         }
         CL = lp.classLoader;
@@ -231,12 +372,19 @@ final class Feat {
 
         // resetCfgOnUpgrade();  // 9.1 没有
 
-        if (!cfg("allow_resign", false) && !selfSignatureOk()) {
+        // 签名自校验只在「模块自己作为独立 APK 被加载」时才有意义。
+        // NPatch/LSPatch 集成模式下，模块 dex 被并进宿主 APK，getCodeSource 指向宿主，
+        // 证书必然对不上 —— 那种情况直接跳过校验，否则会在装 hook 前就 return（表现为完全无效）。
+        String selfPath = moduleApkPath();
+        boolean standalone = selfPath != null && selfPath.contains("com.klgc.animerepublic");
+        if (!standalone) {
+            log("L43 embedded=" + selfPath);
+        } else if (!cfg("allow_resign", false) && !selfSignatureOk()) {
             log("L42");
             return;
         }
 
-        boolean safeMode = watchdogOnLoad();
+        boolean safeMode = standalone && watchdogOnLoad();
         if (safeMode) {
             log("L7");
             return;
@@ -246,6 +394,39 @@ final class Feat {
             run("E-env", new Action() {
                 public void run() throws Throwable {
                     h34();
+                }
+            });
+        }
+        if (cfg("attest_bypass", false)) {
+            run("T-attest", new Action() {
+                public void run() throws Throwable {
+                    h40();
+                    h42();
+                    if (cfg("attest_kill", false)) {
+                        h43();
+                    }
+                    h44();
+                    h45();
+                    h47();
+                    h48();
+                    h49();
+                    h46();
+                    h56();
+                    h57();
+                    h58();
+                    h59();
+                    h60();
+                    h61();
+                    h62();
+                    h63();
+                    h64();
+                    h66();
+                    h67();
+                    onMain(2500L, new Runnable() {
+                        public void run() {
+                        }
+                    });
+                    h65();
                 }
             });
         }
@@ -260,6 +441,29 @@ final class Feat {
             run("A-exempt", new Action() {
                 public void run() throws Throwable {
                     h1();
+                }
+            });
+            run("A2-dns", new Action() {
+                public void run() throws Throwable {
+                    h70();
+                }
+            });
+            run("A3-gate", new Action() {
+                public void run() throws Throwable {
+                    h80();
+                }
+            });
+            run("A4-splash", new Action() {
+                public void run() throws Throwable {
+                    h81();
+                }
+            });
+            run("A5-forever", new Action() {
+                public void run() throws Throwable {
+                    h90();
+                    h91();
+                    h92();
+                    h93();
                 }
             });
         }
@@ -548,6 +752,483 @@ final class Feat {
         }
     }
 
+    /* ------------------------------------------- A2 DNS 层广告域名拦截 */
+
+    private static final String[] AD_HOSTS = {
+            "sigmob", "adukwai", "pangolin-sdk-toutiao", "gromore.pangolin",
+            "pglstatp", "snssdk.com", "bytedance", "bytesfield", "oceanengine",
+            "gdt.qq.com", "mobads", "beizi", "windmill", "tanx.com", "alipayobjects-ad",
+            "kuaishou", "kwai", "oppomobile-ad", "mi.gdt", "vivo-ad", "csj"
+    };
+
+    private boolean isAdHost(String host) {
+        if (host == null) {
+            return false;
+        }
+        String h = host.toLowerCase();
+        for (String k : AD_HOSTS) {
+            if (h.contains(k)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void h70() {
+        try {
+            Class<?> inet = XposedHelpers.findClass("java.net.InetAddress", CL);
+            XposedBridge.hookAllMethods(inet, "getAllByName", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!cfg("ad_dns_block", false)) {
+                            return;
+                        }
+                        if (param.args != null && param.args.length > 0
+                                && param.args[0] instanceof String && isAdHost((String) param.args[0])) {
+                            param.setThrowable(new java.net.UnknownHostException((String) param.args[0]));
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            XposedBridge.hookAllMethods(inet, "getByName", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!cfg("ad_dns_block", false)) {
+                            return;
+                        }
+                        if (param.args != null && param.args.length > 0
+                                && param.args[0] instanceof String && isAdHost((String) param.args[0])) {
+                            param.setThrowable(new java.net.UnknownHostException((String) param.args[0]));
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L201");
+        } catch (Throwable t) {
+            log("L202" + t);
+        }
+    }
+
+    /* --------------------------------------- A3 播放闸门直通（AdRequired 场景） */
+
+    private static Object sGateRight;
+
+    private static Object gateRight() {
+        if (sGateRight != null) {
+            return sGateRight;
+        }
+        try {
+            Class<?> gw = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.domain.ad.AdSuccess$GuestWatched", CL);
+            Class<?> right = XposedHelpers.findClass("arrow.core.Either$Right", CL);
+            Object g = XposedHelpers.newInstance(gw, null, null);
+            sGateRight = XposedHelpers.newInstance(right, g);
+        } catch (Throwable t) {
+            h26("L301" + t);
+        }
+        return sGateRight;
+    }
+
+    /** 会员卡片：9999 到期文案改写成「永久有效」 */
+    private void h90() {
+        final String BANNER = "com.yy.myuko.shared.presentation.membership.component.MembershipGuideBannerKt";
+        try {
+            Class<?> k = XposedHelpers.findClass(BANNER, CL);
+            XposedBridge.hookAllMethods(k, "MemberStatusBannerContent", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!cfg("member", true) || !isForever()) {
+                            return;
+                        }
+                        Object[] a = param.args;
+                        for (int i = 0; i < a.length; i++) {
+                            if (a[i] instanceof String) {
+                                String v = (String) a[i];
+                                if (v.endsWith("到期") && v.startsWith("9999")) {
+                                    a[i] = "永久有效";
+                                    log("F1 到期文案改为永久");
+                                }
+                            }
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            log("F1ERR" + t);
+        }
+        try {
+            Class<?> k2 = XposedHelpers.findClass(BANNER, CL);
+            XposedBridge.hookAllMethods(k2, "formatMemberExpireDate", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!isForever()) {
+                            return;
+                        }
+                        Object r = param.getResult();
+                        if (r instanceof String && ((String) r).startsWith("9999")) {
+                            param.setResult("永久");
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            log("F2ERR" + t);
+        }
+        try {
+            Class<?> kc = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.presentation.screen.skinstore.BenefitPurchaseCopyKt", CL);
+            XposedBridge.hookAllMethods(kc, "benefitRemainingText", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!isForever()) {
+                            return;
+                        }
+                        long expire = ((Long) param.args[0]).longValue();
+                        long now = ((Long) param.args[1]).longValue();
+                        if (expire - now > 3650L * 86400000L) {
+                            param.setResult("");
+                            h26("F5 剩余天数清空");
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            h26("F5ERR" + t);
+        }
+        try {
+            Class<?> kb = XposedHelpers.findClass(BANNER, CL);
+            XposedBridge.hookAllMethods(kb, "formatMemberExpireDate", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    try {
+                        StackTraceElement[] st = new Throwable().getStackTrace();
+                        StringBuilder sb = new StringBuilder("F4 call ");
+                        for (int i = 0; i < st.length && i < 6; i++) {
+                            sb.append(st[i].getClassName()).append("#").append(st[i].getMethodName()).append(" < ");
+                        }
+                        h26(sb.toString());
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            h26("F4ERR" + t);
+        }
+        try {
+            XposedBridge.hookAllMethods(StringBuilder.class, "append", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    try {
+                        if (param.args.length != 1 || !(param.args[0] instanceof String)) {
+                            return;
+                        }
+                        String a0 = (String) param.args[0];
+                        StringBuilder self = (StringBuilder) param.thisObject;
+                        if (a0.length() == 2 && a0.equals("\u5230\u671f") && self.length() >= 2
+                                && self.toString().endsWith("\u6c38\u4e45")) {
+                            param.args[0] = "\u4f1a\u5458";
+                            h26("F6 到期->会员");
+                        } else if (a0.startsWith("\u5269\u4f59") && self.toString().contains("\u6c38\u4e45\u4f1a\u5458")) {
+                            param.args[0] = "";
+                            h26("F6 去掉剩余");
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            h26("F6ERR" + t);
+        }
+        try {
+            Class<?> as = XposedHelpers.findClass("androidx.compose.ui.text.AnnotatedString", CL);
+            XposedBridge.hookAllConstructors(as, new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!cfg("member", true)) {
+                            return;
+                        }
+                        Object[] a = param.args;
+                        for (int i = 0; i < a.length; i++) {
+                            if (a[i] instanceof String) {
+                                String v = (String) a[i];
+                                if (v.contains("永久到期") || v.endsWith("到期")) {
+                                    String nv = v.replace("永久到期", "永久会员");
+                                    int ri = nv.indexOf("剩余");
+                                    if (nv.contains("永久会员") && ri > 0) {
+                                        nv = nv.substring(0, ri).trim();
+                                    }
+                                    a[i] = nv;
+                                    h26("F3 " + v + " -> " + nv);
+                                }
+                            }
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            log("F3ERR" + t);
+        }
+    }
+
+    private static String fixPerm(String t) {
+        if (t == null) {
+            return null;
+        }
+        // 只有在面板里勾选了「永久会员」时才改写文案；
+        // 手动填写 9999-12-31 等具体日期时保持原样。
+        if (!isForever()) {
+            return null;
+        }
+        if (!t.contains("\u5230\u671f") && !t.contains("\u5269\u4f59")) {
+            return null;
+        }
+        String nv = t.replace("\u6c38\u4e45\u5230\u671f", "\u6c38\u4e45\u4f1a\u5458");
+        int ri = nv.indexOf("\u5269\u4f59");
+        if (ri > 0 && nv.contains("\u6c38\u4e45\u4f1a\u5458")) {
+            nv = nv.substring(0, ri).trim();
+        }
+        // \"生效中\" \u6837\u5f0f\u4fdd\u7559\uff0c\u4e0d\u52a8\u5176\u5b83
+        return nv.equals(t) ? null : nv;
+    }
+
+    private void h91() {
+        try {
+            final Class<?> asCls = XposedHelpers.findClass("androidx.compose.ui.text.AnnotatedString", CL);
+            Class<?> b = XposedHelpers.findClass("androidx.compose.ui.text.AnnotatedString$Builder", CL);
+            XposedBridge.hookAllMethods(b, "append", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!cfg("member", true) || param.args.length < 1 || param.args[0] == null) {
+                            return;
+                        }
+                        if (!(param.args[0] instanceof CharSequence)) {
+                            return;
+                        }
+                        String s = param.args[0].toString();
+                        String cur = "";
+                        try {
+                            Object tb = XposedHelpers.getObjectField(param.thisObject, "text");
+                            if (tb != null) {
+                                cur = tb.toString();
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                        if (s.equals("\u5230\u671f") && cur.endsWith("\u6c38\u4e45")) {
+                            param.args[0] = "\u4f1a\u5458";
+                            h26("F7 \u5230\u671f->\u4f1a\u5458");
+                        } else if (s.startsWith("\u5269\u4f59") && cur.contains("\u6c38\u4e45")) {
+                            param.args[0] = "";
+                            h26("F7 \u53bb\u5269\u4f59");
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            XposedBridge.hookAllMethods(b, "toAnnotatedString", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    try {
+                        Object r = param.getResult();
+                        if (r == null) {
+                            return;
+                        }
+                        String t = (String) XposedHelpers.callMethod(r, "getText");
+                        String nv = fixPerm(t);
+                        if (nv != null) {
+                            param.setResult(XposedHelpers.newInstance(asCls, nv));
+                            h26("F7 build " + t + " -> " + nv);
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            h26("F7ERR" + t);
+        }
+        try {
+            XposedBridge.hookAllMethods(String.class, "concat", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!cfg("member", true) || param.thisObject == null || param.args.length != 1) {
+                            return;
+                        }
+                        String self = (String) param.thisObject;
+                        Object a0 = param.args[0];
+                        if (a0 == null) {
+                            return;
+                        }
+                        String s = a0.toString();
+                        if (s.equals("\u5230\u671f") && self.endsWith("\u6c38\u4e45")) {
+                            param.setResult(self + "\u4f1a\u5458");
+                            h26("F8 concat \u5230\u671f->\u4f1a\u5458");
+                        } else if (s.startsWith("\u5269\u4f59") && self.contains("\u6c38\u4e45")) {
+                            param.setResult(self);
+                            h26("F8 concat \u53bb\u5269\u4f59");
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            h26("F8ERR" + t);
+        }
+    }
+
+    private void h92() {
+        try {
+            XposedBridge.hookAllMethods(android.widget.TextView.class, "setText", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    try {
+                        if (!cfg("member", true) || param.args.length < 1 || param.args[0] == null) {
+                            return;
+                        }
+                        Object a0 = param.args[0];
+                        if (!(a0 instanceof CharSequence)) {
+                            return;
+                        }
+                        String v = a0.toString();
+                        String nv = fixPerm(v);
+                        if (nv != null) {
+                            param.args[0] = nv;
+                            h26("F9 tv " + v + " -> " + nv);
+                            return;
+                        }
+                        if (v.length() > 3 && v.startsWith("\u5269\u4f59") && v.endsWith("\u5929")) {
+                            String num = v.substring(2, v.length() - 1).trim();
+                            try {
+                                long d = Long.parseLong(num);
+                                if (d > 10000L) {
+                                    param.args[0] = "";
+                                    h26("F9 tv \u53bb\u5269\u4f59 " + num);
+                                }
+                            } catch (Throwable ignored) {
+                            }
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            h26("F9ERR" + t);
+        }
+    }
+
+    private void h93() {
+        try {
+            Class<?> k = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.presentation.screen.membercenter.component.MemberIdentityCardKt", CL);
+            XposedBridge.hookAllMethods(k, "identitySubline", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    try {
+                        Object r = param.getResult();
+                        if (!(r instanceof String)) {
+                            return;
+                        }
+                        String v = (String) r;
+                        String nv = fixPerm(v);
+                        if (nv != null) {
+                            param.setResult(nv);
+                            h26("FA subline " + v + " -> " + nv);
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            h26("FAERR" + t);
+        }
+    }
+
+    private void h80() {
+        String[] names = {
+                "com.yy.myuko.shared.presentation.ad.PreRollAdGate",
+                "com.yy.myuko.shared.presentation.ad.RewardedAdGate",
+                "com.yy.myuko.shared.presentation.ad.PlayerAdGate"
+        };
+        for (String n : names) {
+            try {
+                Class<?> k = XposedHelpers.findClass(n, CL);
+                XposedBridge.hookAllMethods(k, "request", new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        try {
+                            if (!cfg("gate_pass", true)) {
+                                return;
+                            }
+                            if (param.args == null || param.args.length != 2) {
+                                return;
+                            }
+                            Object r = gateRight();
+                            if (r != null) {
+                                param.setResult(r);
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                });
+                h26("L302" + n);
+            } catch (Throwable t) {
+                h26("L303" + n + t);
+            }
+        }
+    }
+
+    /* ------------------------------------------- A4 开屏广告拦截（Splash） */
+
+    private void h81() {
+        try {
+            Class<?> uc = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.domain.ad.usecase.AdSessionUseCase", CL);
+            String[] ms = {"invoke", "invokeTracked"};
+            for (String mn : ms) {
+                XposedBridge.hookAllMethods(uc, mn, new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        try {
+                            if (!cfg("splash_skip", true)) {
+                                return;
+                            }
+                            if (param.args == null || param.args.length == 0) {
+                                return;
+                            }
+                            Object slot = param.args[0];
+                            if (slot == null) {
+                                return;
+                            }
+                            String sn = slot.getClass().getSimpleName();
+                            if (sn != null && sn.toLowerCase().contains("splash")) {
+                                Object r = gateRight();
+                                if (r != null) {
+                                    param.setResult(r);
+                                }
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                });
+            }
+            h26("L304");
+        } catch (Throwable t) {
+            h26("L305" + t);
+        }
+    }
+
     /* ---------------------------------------------------------- A 去广告 */
 
     private void h1() {
@@ -563,7 +1244,7 @@ final class Feat {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 try {
-                    if (param.getResult() != null || param.hasThrowable()) {
+                    if (param.hasThrowable() || param.getResult() != null) {
                         return;
                     }
                     Object slot = (param.args != null && param.args.length > 0) ? param.args[0] : null;
@@ -660,13 +1341,43 @@ final class Feat {
             String anchor = "return \"OK\", json.encode(result), json.encode({}), \"multi\"";
             int idx = script.indexOf(anchor);
             if (idx < 0) {
+                // 兼容服务端下发的其它写法：先找 json.encode(result)，再回退到该行行首
+                int e = script.lastIndexOf("json.encode(result)");
+                if (e > 0) {
+                    int ls = script.lastIndexOf('\n', e);
+                    idx = ls < 0 ? 0 : ls + 1;
+                }
+            }
+            if (idx < 0) {
+                k4Log("noscript");
                 return null;
             }
             String inject = "do -- __dsh4k\nlocal _only = {}\nfor _, _v in ipairs(result) do\nif (tonumber(_v.res) or 0) >= 2160 then\n_v.quality = \"1080P 高清\"; _v.name = \"1080P 高清\"\n_only[#_only + 1] = _v\nend\nend\nif #_only > 0 then result = _only end\nend\n";
+            k4Log("ok");
             return script.substring(0, idx) + inject + script.substring(idx);
         } catch (Throwable t) {
             XposedBridge.log(TAG + "L33" + t);
             return null;
+        }
+    }
+
+    private static int nK4 = 0;
+
+    private static void k4Log(String msg) {
+        if (nK4 > 6) {
+            return;
+        }
+        nK4++;
+        try {
+            java.io.File f = new java.io.File("/sdcard/Download/DSH-Go", "k4.log");
+            java.io.FileOutputStream fo = new java.io.FileOutputStream(f, true);
+            try {
+                fo.write((System.currentTimeMillis() + " " + (lastPkg == null ? "?" : lastPkg)
+                        + " " + msg + "\n").getBytes("UTF-8"));
+            } finally {
+                try { fo.close(); } catch (Throwable ignored) { }
+            }
+        } catch (Throwable ignored) {
         }
     }
 
@@ -896,6 +1607,22 @@ final class Feat {
                             }
                             Object q = param.args[3];
                             String qs = q == null ? "" : String.valueOf(q);
+                            k4Log("exq=" + qs);
+                            // 试验：把 exchange 里的布尔/等级参数按“会员”方向改写
+                            if (cfg("vip_probe", false)) {
+                                StringBuilder dbg = new StringBuilder("exargs");
+                                for (int ai = 0; ai < param.args.length; ai++) {
+                                    Object a = param.args[ai];
+                                    if (a instanceof Boolean) {
+                                        param.args[ai] = Boolean.TRUE;
+                                    } else if (a instanceof Integer && ((Integer) a).intValue() == 0) {
+                                        param.args[ai] = Integer.valueOf(1);
+                                    }
+                                    dbg.append(" ").append(ai).append("=")
+                                       .append(a == null ? "null" : String.valueOf(a));
+                                }
+                                k4Log(dbg.toString());
+                            }
                             if (!cfg(F11, true)) {
                                 return;
                             }
@@ -914,6 +1641,36 @@ final class Feat {
             h26("L51");
         } catch (Throwable t) {
             h26("L52" + t);
+        }
+    }
+
+    private static void h9b() {
+        try {
+            Class<?> repo = XposedHelpers.findClass("com.yy.myuko.shared.data.resolve.PlaybackResolveRepositoryImpl", CL);
+            for (java.lang.reflect.Method m : repo.getDeclaredMethods()) {
+                if (!sj("exch", "ange").equals(m.getName())) {
+                    continue;
+                }
+                XposedBridge.hookMethod(m, new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        try {
+                            Object r = param.getResult();
+                            if (r == null || r.getClass().getName().contains("CoroutineSingletons")) {
+                                k4Log("exret=SUSPENDED");
+                                return;
+                            }
+                            String s2 = describeValue(r);
+                            if (s2.length() > 400) {
+                                s2 = s2.substring(0, 400);
+                            }
+                            k4Log("exret=" + s2);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                });
+            }
+        } catch (Throwable ignored) {
         }
     }
 
@@ -1129,6 +1886,7 @@ final class Feat {
             h26("L71" + t);
         }
         h9();
+        h9b();
         log("L72" + n);
     }
 
@@ -1558,8 +2316,9 @@ final class Feat {
         }
         Class<?> instantCls = XposedHelpers.findClass(C_INSTANT, CL);
         Object companion = XposedHelpers.getStaticObjectField(instantCls, "Companion");
+        long expMs = memberExpireMs();
         Object expireAt = XposedHelpers.callMethod(companion, "fromEpochMilliseconds",
-                Long.valueOf(FAR_FUTURE_MS));
+                Long.valueOf(expMs));
         Class<?> levelCls = XposedHelpers.findClass(C_LEVEL, CL);
         // Active.tiers 的元素是 com.yy.myuko.shared.domain.welfare.model.VipTier
         // VipTier(String levelId, int levelCode, String name, String expireTime, boolean isCurrent)
@@ -1570,8 +2329,10 @@ final class Feat {
             String name = nameObj == null ? "SVIP" : (String) nameObj;
             Object codeObj = XposedHelpers.callMethod(level, "getLevelCode");
             int levelCode = codeObj instanceof Integer ? ((Integer) codeObj).intValue() : 0;
-            String expireIso = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
-                    .format(new java.util.Date(FAR_FUTURE_MS));
+            java.text.SimpleDateFormat isof = new java.text.SimpleDateFormat(
+                    "yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US);
+            isof.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            String expireIso = isof.format(new java.util.Date(expMs));
             Class<?> tierCls = XposedHelpers.findClass(F10, CL);
             tier = tierCls.getConstructor(String.class, int.class, String.class, String.class, boolean.class)
                     .newInstance(levelId, Integer.valueOf(levelCode), name, expireIso, Boolean.TRUE);
@@ -1933,7 +2694,7 @@ final class Feat {
         page.setOrientation(android.widget.LinearLayout.VERTICAL);
         int top = miuInset(act, "status_bar_height", 24);
         int nav = miuInset(act, "navigation_bar_height", 0);
-        page.setPadding(dp(act, 16), Math.max(0, top - dp(act, 8)) + dp(act, 10), dp(act, 16), dp(act, 16));
+        page.setPadding(dp(act, 16), Math.max(0, top - dp(act, 8)) + dp(act, 10), dp(act, 16), 0);
         return page;
     }
 
@@ -1983,7 +2744,7 @@ final class Feat {
 
         miuGroup(act, page, "模块状态");
         android.widget.LinearLayout c1 = miuCard(act);
-        c1.addView(miuInfoRow(act, "✓", 0xFF2FB344, "已激活", "模块正在 " + PKG + " 中运行", null));
+        c1.addView(miuInfoRow(act, "✓", 0xFF2FB344, "已激活", "模块正在 " + TARGET_NAME() + " 中运行", null));
         page.addView(c1);
 
         miuGroup(act, page, "运行环境");
@@ -1991,7 +2752,7 @@ final class Feat {
         c2.addView(miuInfoRow(act, "版", 0xFF00A0A0, "模块版本",
                 "v" + VERSION_NAME + " (" + BUILD_VER + ")", null));
         miuDivider(act, c2);
-        c2.addView(miuInfoRow(act, "包", 0xFF7A5AF8, "宿主包名", PKG, null));
+        c2.addView(miuInfoRow(act, "包", 0xFF7A5AF8, "宿主包名", hostPkg(), null));
         miuDivider(act, c2);
 
         // 「当前开关」行单独构建：保留 TextView 引用，开关一变立即刷新
@@ -2014,8 +2775,6 @@ final class Feat {
         return page;
     }
 
-    /* ---------------------------- 功能（开关） ---------------------------- */
-
     private static android.widget.LinearLayout miuFuncPage(android.app.Activity act) {
         android.widget.LinearLayout page = miuPageBase(act);
         miuTitle(act, page, "功能");
@@ -2027,6 +2786,10 @@ final class Feat {
                 miuDivider(act, c1);
             }
             c1.addView(makeSwitchRow(act, MIU_ITEMS[i]));
+            if ("member".equals(MIU_ITEMS[i][0])) {
+                miuDivider(act, c1);
+                c1.addView(makeMemberTimeRow(act));
+            }
         }
         page.addView(c1);
 
@@ -2041,6 +2804,259 @@ final class Feat {
         page.addView(c2);
 
         return page;
+    }
+
+    private static boolean isForever() {
+        // 默认为“永久会员”：未配置或顯式写 forever 都算永久
+        String v = cfgStr("member_expire", "forever");
+        return v.length() == 0 || "forever".equalsIgnoreCase(v);
+    }
+
+    private static String expireText() {
+        String raw = cfgStr("member_expire", "");
+        if (isForever()) {
+            return "永久";
+        }
+        return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
+                .format(new java.util.Date(memberExpireMs())) + " [" + raw + "]";
+    }
+
+    /** 与卡片其它行同款的可点击行：修改会员时间 */
+    private static android.view.View makeMemberTimeRow(final android.app.Activity act) {
+        android.widget.LinearLayout row = miuRowBase(act);
+        row.addView(miuIcon(act, "期", 0xFFE0709C), miuIconLp(act));
+
+        android.widget.LinearLayout texts = new android.widget.LinearLayout(act);
+        texts.setOrientation(android.widget.LinearLayout.VERTICAL);
+        texts.addView(miuText(act, "修改会员时间", 16f, MIU_TEXT, false));
+        final android.widget.TextView sub = miuText(act, expireText(), 13f, MIU_SUB, false);
+        sub.setMaxLines(1);
+        sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        android.widget.LinearLayout.LayoutParams slp = new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        slp.topMargin = dp(act, 2);
+        texts.addView(sub, slp);
+        row.addView(texts, new android.widget.LinearLayout.LayoutParams(
+                0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(miuArrow(act));
+
+        row.setOnClickListener(new android.view.View.OnClickListener() {
+            public void onClick(android.view.View v) {
+                showExpireDialog(act, sub);
+            }
+        });
+        return row;
+    }
+
+    private static android.widget.EditText expireField(android.app.Activity act, String hint, float w) {
+        android.widget.EditText e = new android.widget.EditText(act);
+        e.setHint(hint);
+        e.setGravity(android.view.Gravity.CENTER);
+        e.setSingleLine(true);
+        e.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 17f);
+        e.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        e.setTextColor(MIU_TEXT);
+        e.setHintTextColor(MIU_SUB);
+        e.setBackground(miuSoftBg(act));
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                0, dp(act, 46), w);
+        e.setLayoutParams(lp);
+        return e;
+    }
+
+    private static android.graphics.drawable.GradientDrawable miuSoftBg(android.app.Activity act) {
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(dp(act, 12));
+        bg.setColor(0xFFF3F4F6);
+        return bg;
+    }
+
+    /** 与面板同风格的弹窗：白卡 20dp 圆角、三段日期输入、胶囊按钮 */
+    private static void showExpireDialog(final android.app.Activity act, final android.widget.TextView sub) {
+        try {
+            final android.app.Dialog d = new android.app.Dialog(act);
+            d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+
+            android.widget.LinearLayout root = new android.widget.LinearLayout(act);
+            root.setOrientation(android.widget.LinearLayout.VERTICAL);
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setCornerRadius(dp(act, 20));
+            bg.setColor(0xFFFFFFFF);
+            root.setBackground(bg);
+            int pad = dp(act, 20);
+            root.setPadding(pad, pad, pad, dp(act, 16));
+
+            root.addView(miuText(act, "修改会员时间", 19f, MIU_TEXT, true));
+            android.widget.TextView tip = miuText(act, "按年 / 月 / 日分别填写；打开「永久会员」则不显示日期", 13f, MIU_SUB, false);
+            android.widget.LinearLayout.LayoutParams tlp = new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+            tlp.topMargin = dp(act, 6);
+            tlp.bottomMargin = dp(act, 16);
+            root.addView(tip, tlp);
+
+            long ms = memberExpireMs();
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTimeInMillis(ms);
+            final android.widget.EditText eY = expireField(act, "年", 1.2f);
+            final android.widget.EditText eM = expireField(act, "月", 1f);
+            final android.widget.EditText eD = expireField(act, "日", 1f);
+            eY.setText(String.valueOf(cal.get(java.util.Calendar.YEAR)));
+            eM.setText(String.valueOf(cal.get(java.util.Calendar.MONTH) + 1));
+            eD.setText(String.valueOf(cal.get(java.util.Calendar.DAY_OF_MONTH)));
+
+            android.widget.LinearLayout line = new android.widget.LinearLayout(act);
+            line.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            line.addView(eY);
+            android.widget.LinearLayout.LayoutParams gap = new android.widget.LinearLayout.LayoutParams(
+                    dp(act, 10), 1);
+            eM.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, dp(act, 46), 1f));
+            eD.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, dp(act, 46), 1f));
+            root.addView(line);
+            line.addView(new android.view.View(act), gap);
+            line.addView(eM);
+            line.addView(new android.view.View(act), new android.widget.LinearLayout.LayoutParams(dp(act, 10), 1));
+            line.addView(eD);
+
+            final MiuixSwitch forever = new MiuixSwitch(act, isForever());
+            android.widget.LinearLayout fRow = new android.widget.LinearLayout(act);
+            fRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            fRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            android.widget.LinearLayout.LayoutParams frp = new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+            frp.topMargin = dp(act, 14);
+            fRow.addView(miuText(act, "永久会员", 16f, MIU_TEXT, false),
+                    new android.widget.LinearLayout.LayoutParams(0,
+                            android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            fRow.addView(forever, new android.widget.LinearLayout.LayoutParams(
+                    dp(act, 46), dp(act, 28)));
+            root.addView(fRow, frp);
+
+            forever.setOnChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
+                public void onCheckedChanged(android.widget.CompoundButton b, boolean v) {
+                    eY.setEnabled(!v);
+                    eM.setEnabled(!v);
+                    eD.setEnabled(!v);
+                    eY.setAlpha(v ? 0.45f : 1f);
+                    eM.setAlpha(v ? 0.45f : 1f);
+                    eD.setAlpha(v ? 0.45f : 1f);
+                }
+            });
+            boolean initForever = isForever();
+            if (initForever) {
+                eY.setEnabled(false);
+                eM.setEnabled(false);
+                eD.setEnabled(false);
+                eY.setAlpha(0.45f);
+                eM.setAlpha(0.45f);
+                eD.setAlpha(0.45f);
+            }
+            // 只要用户动了年/月/日 任一格，就自动取消「永久会员」
+            android.text.TextWatcher pickDateWatcher = new android.text.TextWatcher() {
+                public void beforeTextChanged(CharSequence cs, int a, int b, int c) {
+                }
+
+                public void onTextChanged(CharSequence cs, int a, int b, int c) {
+                }
+
+                public void afterTextChanged(android.text.Editable e) {
+                    if (forever.isOn()) {
+                        forever.setOnSilently(false);
+                    }
+                }
+            };
+            eY.addTextChangedListener(pickDateWatcher);
+            eM.addTextChangedListener(pickDateWatcher);
+            eD.addTextChangedListener(pickDateWatcher);
+
+            android.widget.LinearLayout btns = new android.widget.LinearLayout(act);
+            btns.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            android.widget.LinearLayout.LayoutParams blp = new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+            blp.topMargin = dp(act, 20);
+
+            android.widget.TextView cancel = miuText(act, "取消", 16f, MIU_SUB, false);
+            cancel.setGravity(android.view.Gravity.CENTER);
+            android.graphics.drawable.GradientDrawable cbg = new android.graphics.drawable.GradientDrawable();
+            cbg.setCornerRadius(dp(act, 23));
+            cbg.setColor(0xFFF3F4F6);
+            cancel.setBackground(cbg);
+            android.widget.LinearLayout.LayoutParams clp = new android.widget.LinearLayout.LayoutParams(
+                    0, dp(act, 46), 1f);
+
+            android.widget.TextView ok = miuText(act, "保存", 16f, 0xFFFFFFFF, true);
+            ok.setGravity(android.view.Gravity.CENTER);
+            android.graphics.drawable.GradientDrawable obg = new android.graphics.drawable.GradientDrawable();
+            obg.setCornerRadius(dp(act, 23));
+            obg.setColor(MIU_BLUE);
+            ok.setBackground(obg);
+            android.widget.LinearLayout.LayoutParams olp = new android.widget.LinearLayout.LayoutParams(
+                    0, dp(act, 46), 1f);
+            olp.leftMargin = dp(act, 12);
+
+            cancel.setOnClickListener(new android.view.View.OnClickListener() {
+                public void onClick(android.view.View v) {
+                    d.dismiss();
+                }
+            });
+            ok.setOnClickListener(new android.view.View.OnClickListener() {
+                public void onClick(android.view.View v) {
+                    try {
+                        if (forever.isOn()) {
+                            setCfgStr("member_expire", "forever");
+                        } else {
+                            int y = parseIntSafe(eY.getText().toString(), 9999);
+                            int m = parseIntSafe(eM.getText().toString(), 12);
+                            int dd = parseIntSafe(eD.getText().toString(), 31);
+                            if (y < 1970) y = 1970;
+                            if (y > 9999) y = 9999;
+                            if (m < 1) m = 1;
+                            if (m > 12) m = 12;
+                            if (dd < 1) dd = 1;
+                            if (dd > 31) dd = 31;
+                            setCfgStr("member_expire", String.format(java.util.Locale.US,
+                                    "%04d-%02d-%02d 23:59:59", Integer.valueOf(y),
+                                    Integer.valueOf(m), Integer.valueOf(dd)));
+                        }
+                        sub.setText(expireText());
+                        d.dismiss();
+                        android.widget.Toast.makeText(act, "已保存，重新打开应用后生效",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    } catch (Throwable t) {
+                        h26("L202" + t);
+                    }
+                }
+            });
+
+            btns.addView(cancel, clp);
+            btns.addView(ok, olp);
+            root.addView(btns, blp);
+
+            d.setContentView(root);
+            android.view.Window w = d.getWindow();
+            if (w != null) {
+                w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0x00000000));
+                int mw = Math.min(dp(act, 340),
+                        act.getResources().getDisplayMetrics().widthPixels - dp(act, 56));
+                w.setLayout(mw, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+                w.setDimAmount(0.35f);
+                w.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            }
+            d.show();
+        } catch (Throwable t) {
+            h26("L203" + t);
+        }
+    }
+
+    private static int parseIntSafe(String s, int def) {
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (Throwable t) {
+            return def;
+        }
     }
 
     /* ---------------------------- 关于 ---------------------------- */
@@ -2058,14 +3074,14 @@ final class Feat {
         miuDivider(act, c1);
 
         final android.widget.LinearLayout netRow = miuInfoRow(act, "盘", 0xFFFF8C00,
-                "项目主页", "pan.quark.cn", miuArrow(act));
+                "官方网盘", "pan.quark.cn", miuArrow(act));
         netRow.setClickable(true);
         netRow.setOnClickListener(new android.view.View.OnClickListener() {
             public void onClick(android.view.View v) {
                 try {
                     android.content.Intent it = new android.content.Intent(
                             android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse("https://github.com/jsnb6/klgc-hook"));
+                            android.net.Uri.parse("https://pan.quark.cn/s/b4b19e6021e2"));
                     it.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
                     act.startActivity(it);
                 } catch (Throwable t) {
@@ -2178,6 +3194,10 @@ final class Feat {
 
         boolean isOn() {
             return on;
+        }
+
+        void setOnSilently(boolean v) {
+            apply(v, false);
         }
 
         void setOnChangeListener(android.widget.CompoundButton.OnCheckedChangeListener l) {
@@ -3226,7 +4246,7 @@ final class Feat {
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
 
             /* 主按钮：官方网盘 */
-            android.widget.TextView net = miuText(act, "项目主页", 15f, 0xFFFFFFFF, false);
+            android.widget.TextView net = miuText(act, "官方网盘", 15f, 0xFFFFFFFF, false);
             net.setGravity(android.view.Gravity.CENTER);
             net.setClickable(true);
             android.graphics.drawable.GradientDrawable btnBg = new android.graphics.drawable.GradientDrawable();
@@ -3241,7 +4261,7 @@ final class Feat {
                 public void onClick(android.view.View v) {
                     try {
                         android.content.Intent it = new android.content.Intent(android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://github.com/jsnb6/klgc-hook"));
+                                android.net.Uri.parse("https://pan.quark.cn/s/b4b19e6021e2"));
                         it.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
                         act.startActivity(it);
                     } catch (Throwable t) {
@@ -3600,7 +4620,7 @@ final class Feat {
 
     static String statusString() {
         try {
-            Object m = de.robv.android.xposed.XposedBridge.MODULE;
+            Object m = com.dsh.xshim.XposedBridge.MODULE;
             if (m == null) {
                 return "";
             }
@@ -3630,7 +4650,7 @@ final class Feat {
             final java.lang.reflect.Method m = act.getDeclaredMethod("probeStatus");
             Object mod = null;
             try {
-                mod = de.robv.android.xposed.XposedBridge.MODULE;
+                mod = com.dsh.xshim.XposedBridge.MODULE;
             } catch (Throwable ignored) {
             }
             final Object fm = mod;
@@ -3669,7 +4689,7 @@ final class Feat {
             android.os.Bundle b = new android.os.Bundle();
             Object m = null;
             try {
-                m = de.robv.android.xposed.XposedBridge.MODULE;
+                m = com.dsh.xshim.XposedBridge.MODULE;
             } catch (Throwable ignored) {
             }
             if (m != null) {
@@ -4456,8 +5476,20 @@ final class Feat {
             sv.setVerticalScrollBarEnabled(false);
             sv.setOverScrollMode(android.view.View.OVER_SCROLL_NEVER);
             sv.setClipToPadding(false);
-            int navH = miuInset(act, "navigation_bar_height", 0);
-            sv.setPadding(0, 0, 0, dp(act, 88) + navH);
+            final int navH = miuInset(act, "navigation_bar_height", 0);
+            sv.setPadding(0, 0, 0, dp(act, 62) + navH);
+            // 内容没超出视口时直接禁用滚动，避免拖出大片空白
+            sv.addOnLayoutChangeListener(new android.view.View.OnLayoutChangeListener() {
+                public void onLayoutChange(android.view.View v, int l, int t2, int r2, int b2,
+                                           int ol, int ot, int or, int ob) {
+                    try {
+                        android.view.View child = ((android.view.ViewGroup) v).getChildAt(0);
+                        boolean fits = child != null && child.getHeight() <= v.getHeight() - (v.getPaddingTop() + v.getPaddingBottom());
+                        sv.setEnabled(!fits);
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
             sv.addView(pages[i], new android.widget.FrameLayout.LayoutParams(
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -4762,8 +5794,9 @@ final class Feat {
 
         Class<?> instantCls = XposedHelpers.findClass(C_INSTANT, CL);
         Object companion = XposedHelpers.getStaticObjectField(instantCls, "Companion");
+        long expMs = memberExpireMs();
         Object expireAt = XposedHelpers.callMethod(companion, "fromEpochMilliseconds",
-                Long.valueOf(FAR_FUTURE_MS));
+                Long.valueOf(expMs));
 
         Class<?> levelCls = XposedHelpers.findClass(C_LEVEL, CL);
         Object active = XposedHelpers.findClass(C_ACTIVE, CL)
@@ -4885,8 +5918,43 @@ final class Feat {
     private void run(String name, Action action) {
         try {
             action.run();
+            mountLog("ok " + name);
         } catch (Throwable t) {
+            mountLog("ERR " + name + " " + t);
             log(name + "L182" + t);
+        }
+    }
+
+    private static int nExempt = 0;
+
+    private static void mountLogRaw(String line) {
+        try {
+            java.io.File f = new java.io.File("/sdcard/Download/DSH-Go", "mount.log");
+            java.io.FileOutputStream fo = new java.io.FileOutputStream(f, true);
+            try {
+                fo.write((System.currentTimeMillis() + " " + (lastPkg == null ? "?" : lastPkg)
+                        + " " + line + "\n").getBytes("UTF-8"));
+            } finally {
+                try { fo.close(); } catch (Throwable ignored) { }
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void mountLog(String line) {
+        if (!F4) {
+            return;
+        }
+        try {
+            java.io.File f = new java.io.File("/sdcard/Download/DSH-Go", "mount.log");
+            java.io.FileOutputStream fo = new java.io.FileOutputStream(f, true);
+            try {
+                fo.write((System.currentTimeMillis() + " " + (lastPkg == null ? "?" : lastPkg)
+                        + " " + line + "\n").getBytes("UTF-8"));
+            } finally {
+                try { fo.close(); } catch (Throwable ignored) { }
+            }
+        } catch (Throwable ignored) {
         }
     }
 
@@ -4907,6 +5975,11 @@ final class Feat {
 
     /** 写一行到 /sdcard/Download/DSH-Go/animrep.log，失败回退 App 外部私有目录 */
     private static final boolean F4 = false;
+    private static volatile boolean sFixDone = false;
+    private static volatile boolean sGoeppTrace = false;
+    private static volatile boolean sInjecting = false;
+    private static volatile int sKstack = 0;
+    private static final java.util.Set<String> sBuilders = java.util.Collections.synchronizedSet(new java.util.HashSet<String>());
 
     private static void h26(String msg) {
         if (!F4) {
@@ -4921,6 +5994,20 @@ final class Feat {
         }
         // 只写一处：/sdcard/Download/DSH-Go/animrep.log（App 有 MANAGE_EXTERNAL_STORAGE）
         appendTo(new java.io.File(F12, F13), line);
+    }
+
+    private static void rotateLog() {
+        try {
+            java.io.File f = new java.io.File(F12, F13);
+            if (f.exists()) {
+                java.io.File d = new java.io.File(F12, "animrep9.old.log");
+                if (d.exists()) {
+                    d.delete();
+                }
+                f.renameTo(d);
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     private static boolean appendTo(java.io.File f, String line) {
@@ -5009,6 +6096,1424 @@ final class Feat {
     }
 
     /** 环境检测绕过：让宿主的完整性/反调试检查一律汇报"干净" */
+    private static volatile byte[] sRealSig;
+
+    private static byte[] officialSigBytes() {
+        try {
+            return android.util.Base64.decode(CERT_DER_B64, android.util.Base64.DEFAULT);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static byte[] realSigBytes() {
+        byte[] c = sRealSig;
+        if (c != null) {
+            return c;
+        }
+        try {
+            android.content.Context ctx = appContext();
+            if (ctx == null) {
+                return null;
+            }
+            String apk = ctx.getPackageCodePath();
+            java.util.zip.ZipFile zf = new java.util.zip.ZipFile(apk);
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> en = zf.entries();
+            java.security.cert.CertificateFactory cf =
+                    java.security.cert.CertificateFactory.getInstance("X.509");
+            while (en.hasMoreElements()) {
+                java.util.zip.ZipEntry e = en.nextElement();
+                String n = e.getName();
+                if (n.startsWith("META-INF/") && (n.endsWith(".RSA") || n.endsWith(".DSA") || n.endsWith(".EC"))) {
+                    java.io.InputStream in = zf.getInputStream(e);
+                    java.security.cert.Certificate cert = cf.generateCertificate(in);
+                    in.close();
+                    byte[] der = cert.getEncoded();
+                    zf.close();
+                    sRealSig = der;
+                    return der;
+                }
+            }
+            zf.close();
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    private static boolean sameBytes(byte[] a, byte[] b) {
+        if (a == null || b == null || a.length != b.length) {
+            return false;
+        }
+        for (int i = 0; i < a.length; i++) {
+            if (a[i] != b[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void fixSigBytes(Object[] args) {
+        if (args == null) {
+            return;
+        }
+        byte[] real = realSigBytes();
+        byte[] off = officialSigBytes();
+        if (real == null || off == null) {
+            return;
+        }
+        for (int i = 0; i < args.length; i++) {
+            Object o = args[i];
+            if (o instanceof byte[] && sameBytes((byte[]) o, real)) {
+                args[i] = off.clone();
+                h26("SIG swapped arg" + i);
+            }
+        }
+    }
+
+    private void h58() {
+        try {
+            final Class<?> nl = XposedHelpers.findClass("com.ty.core.NativeLib", CL);
+            XposedBridge.hookAllMethods(nl, "init", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        String a = "";
+                        for (Object o : p.args) {
+                            a = a + "|" + (o == null ? "null" : (o.getClass().getSimpleName() + ":" + cut(String.valueOf(o))));
+                        }
+                        Object r = p.getResult();
+                        int iv = (r instanceof Integer) ? ((Integer) r).intValue() : 0;
+                        h26("NATINIT args" + a + " ret=" + r);
+                        if (iv < 0 && cfg("native_init_force", false)) {
+                            p.setResult(Integer.valueOf(0));
+                            h26("NATINIT force ret=0 was=" + iv);
+                        }
+                        sInited = true;
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            XposedBridge.hookAllMethods(nl, "stringFromJNI", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("NATSTR ret=" + cut(String.valueOf(p.getResult())));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L213");
+        } catch (Throwable t) {
+            log("L214" + t);
+        }
+    }
+
+    private static int sHreq = 0;
+    private static int sAll = 0;
+    private static int sNst = 0;
+
+    private void h62() {
+        try {
+            Class<?> oc = XposedHelpers.findClass("okhttp3.OkHttpClient", CL);
+            XposedBridge.hookAllMethods(oc, "newCall", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        if (p.args.length != 1 || p.args[0] == null) {
+                            return;
+                        }
+                        Object rq = p.args[0];
+                        Object u = XposedHelpers.callMethod(rq, "url");
+                        String us = String.valueOf(u);
+                        if (sAll < 60) {
+                            sAll++;
+                            h26("REQ [" + sAll + "] " + String.valueOf(XposedHelpers.callMethod(rq, "method")) + " " + cut(us));
+                        }
+                        if (sHreq >= 3 || (!us.contains("hot-api") && !us.contains("/api/v1/"))) {
+                            return;
+                        }
+                        sHreq++;
+                        try {
+                            Object bd = XposedHelpers.callMethod(rq, "body");
+                            if (bd != null) {
+                                Class<?> bc = XposedHelpers.findClass("okio.Buffer", CL);
+                                Object buf = bc.getConstructor().newInstance();
+                                XposedHelpers.callMethod(bd, "writeTo", buf);
+                                String body = String.valueOf(XposedHelpers.callMethod(buf, "readUtf8"));
+                                h26("BODY [" + sHreq + "] " + cut2(body, 400));
+                            }
+                        } catch (Throwable bt) {
+                            h26("BODYERR " + bt);
+                        }
+                        Object hd = XposedHelpers.callMethod(rq, "headers");
+                        h26("HREQ [" + sHreq + "] " + cut(us) + " >>> " + String.valueOf(hd).replace('\n', '|'));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L251");
+        } catch (Throwable t) {
+            log("L252" + t);
+        }
+    }
+
+    private static int sGen = 0;
+
+    private static byte[] bufBytes(Object bb) {
+        try {
+            Object dup = XposedHelpers.callMethod(bb, "duplicate");
+            int n = ((Integer) XposedHelpers.callMethod(dup, "remaining")).intValue();
+            byte[] out = new byte[n];
+            XposedHelpers.callMethod(dup, "get", out);
+            return out;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static void dumpDex(byte[] data) {
+        if (data == null || data.length < 8) {
+            return;
+        }
+        try {
+            sGen++;
+            java.io.File f = new java.io.File("/sdcard/Download/DSH-Go/gen_" + sGen + ".dex");
+            java.io.FileOutputStream fo = new java.io.FileOutputStream(f, false);
+            fo.write(data);
+            fo.close();
+            h26("GENDEX [" + sGen + "] len=" + data.length);
+        } catch (Throwable t) {
+            h26("GENDEXERR " + t);
+        }
+    }
+
+    private void h63() {
+        try {
+            Class<?> icl = XposedHelpers.findClass("dalvik.system.InMemoryDexClassLoader", CL);
+            XposedBridge.hookAllConstructors(icl, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        for (Object a : p.args) {
+                            if (a instanceof java.nio.ByteBuffer) {
+                                dumpDex(bufBytes(a));
+                            } else if (a instanceof Object[]) {
+                                for (Object e : (Object[]) a) {
+                                    if (e instanceof java.nio.ByteBuffer) {
+                                        dumpDex(bufBytes(e));
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L261");
+        } catch (Throwable t) {
+            log("L262" + t);
+        }
+    }
+
+    private static int sResp = 0;
+
+    private void h64() {
+        try {
+            Class<?> rb = XposedHelpers.findClass("okhttp3.Response$Builder", CL);
+            XposedBridge.hookAllMethods(rb, "build", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        if (sResp >= 40) {
+                            return;
+                        }
+                        Object rs = p.getResult();
+                        if (rs == null) {
+                            return;
+                        }
+                        Object rq = XposedHelpers.callMethod(rs, "request");
+                        String us = String.valueOf(XposedHelpers.callMethod(rq, "url"));
+                        if (!us.contains("/api/") && !us.contains("/app/") && !us.contains("/v1/")) {
+                            return;
+                        }
+                        sResp++;
+                        Object code = XposedHelpers.callMethod(rs, "code");
+                        boolean wantBody = !us.contains("check-update");
+                        String prev = "-";
+                        if (wantBody) try {
+                            Object pb = XposedHelpers.callMethod(rs, "peekBody", Long.valueOf(600L));
+                            prev = String.valueOf(XposedHelpers.callMethod(pb, "string"));
+                        } catch (Throwable t) {
+                            prev = "peekErr";
+                        }
+                        h26("RESP [" + sResp + "] " + code + " " + cut(us) + " => " + cut2(prev, 500));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L271");
+        } catch (Throwable t) {
+            log("L272" + t);
+        }
+    }
+
+    private static String hex(byte[] b, int max) {
+        if (b == null) {
+            return "null";
+        }
+        int n = Math.min(b.length, max);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            sb.append(String.format("%02x", Integer.valueOf(b[i] & 0xFF)));
+        }
+        return sb.toString() + "(" + b.length + ")";
+    }
+
+
+
+
+    private void h67() {
+        try {
+            final Class<?> k = XposedHelpers.findClass("com.yy.myuko.component.ktor.addressing.ZhuqueSessionNativeLib", CL);
+            XposedBridge.hookAllMethods(k, "nativeDeviceContextInit", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        if (p.args.length > 0 && p.args[0] instanceof byte[]) {
+                            byte[] b = (byte[]) p.args[0];
+                            String in = new String(b, java.nio.charset.StandardCharsets.UTF_8);
+                            h26("DC201 " + in);
+                            String out = in.replaceAll("\"asig\":\"[^\"]*\"", "\"asig\":\"" + SIG_OFFICIAL + "\"")
+                                    .replaceAll("\"acert\":\"[^\"]*\"", "\"acert\":\"" + CERT_DER_B64 + "\"");
+                            if (!out.equals(in)) {
+                                p.args[0] = out.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                h26("DC199 fixed " + b.length + "B in=" + hex(b, 64));
+                            }
+                        }
+                    } catch (Throwable t) {
+                        h26("DC199 ERR " + t);
+                    }
+                }
+
+                protected void afterHookedMethod(MethodHookParam p) {
+                    h26("DEVCTX ret=" + p.getResult());
+                }
+            });
+            XposedBridge.hookAllMethods(k, "nativeSessionKey", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("SESSKEY " + hex((byte[]) p.getResult(), 64));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L301");
+        } catch (Throwable t) {
+            log("L302" + t);
+        }
+    }
+
+    private void h66() {
+        try {
+            final Class<?> k = XposedHelpers.findClass("com.yy.myuko.component.ktor.addressing.ZhuqueSessionNativeLib", CL);
+            XposedBridge.hookAllMethods(k, "nativeSetRealProbeEnabled", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        if (p.args.length == 1 && !((Boolean) p.args[0]).booleanValue()) {
+                            h26("PROBE force true was=false");
+                            p.args[0] = Boolean.TRUE;
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            onMain(3000L, new Runnable() {
+                public void run() {
+                    try {
+                        XposedHelpers.callStaticMethod(k, "nativeSetRealProbeEnabled", Boolean.TRUE);
+                        h26("PROBE direct true");
+                    } catch (Throwable t) {
+                        h26("PROBEERR " + t);
+                    }
+                }
+            });
+            log("L291");
+        } catch (Throwable t) {
+            log("L292" + t);
+        }
+    }
+
+    private void h65() {
+        try {
+            final Class<?> k = XposedHelpers.findClass("com.yy.myuko.api.secure.ApiSignatureNativeLib", CL);
+            onMain(4000L, new Runnable() {
+                public void run() {
+                    try {
+                        Object r = XposedHelpers.callStaticMethod(k, "nativeSign",
+                                Long.valueOf(1795815585348L), "b8ac00ca884f4735acb4444c447d084b",
+                                "315891530526580736", "b7a599975b90ac560466466fa8a3021f");
+                        h26("SIGFIX2 " + String.valueOf(r));
+                    } catch (Throwable t) {
+                        h26("SIGFIX2ERR " + t);
+                    }
+                    try {
+                        Class<?> k2 = XposedHelpers.findClass("com.yy.myuko.api.secure.ApiSignatureSigner", CL);
+                        Object sg = XposedHelpers.callStaticMethod(k2, "sign",
+                                Long.valueOf(1795815585348L), "b8ac00ca884f4735acb4444c447d084b",
+                                "315891530526580736");
+                        h26("SIGN2 " + String.valueOf(sg));
+                    } catch (Throwable t) {
+                        h26("SIGN2ERR " + t);
+                    }
+                }
+            });
+            log("L281");
+        } catch (Throwable t) {
+            log("L282" + t);
+        }
+    }
+
+    private static String cut2(String s, int n) {
+        if (s == null) {
+            return "null";
+        }
+        return s.length() <= n ? s : s.substring(0, n);
+    }
+
+    private static int sGstk = 0;
+
+    private void h61() {
+        try {
+            Class<?> rb = XposedHelpers.findClass("okhttp3.Request$Builder", CL);
+            XposedBridge.hookAllMethods(rb, "addHeader", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        if (p.args.length != 2 || !(p.args[0] instanceof String)) {
+                            return;
+                        }
+                        String n = (String) p.args[0];
+                        if (!n.contains("Goepp-Client-Auth") || sGstk >= 2) {
+                            return;
+                        }
+                        sGstk++;
+                        StringBuilder sb = new StringBuilder();
+                        StackTraceElement[] st = new Throwable().getStackTrace();
+                        for (int i = 0; i < st.length && i < 16; i++) {
+                            sb.append(i == 0 ? "" : " <- ").append(st[i].getClassName()).append('#').append(st[i].getMethodName());
+                        }
+                        h26("GSTK2 [" + sGstk + "] " + sb);
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L241");
+        } catch (Throwable t) {
+            log("L242" + t);
+        }
+    }
+
+    private static int sSign = 0;
+
+    private void h60() {
+        try {
+            Class<?> k = XposedHelpers.findClass("com.yy.myuko.api.secure.ApiSignatureNativeLib", CL);
+            XposedBridge.hookAllMethods(k, "nativeSign", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        if (sNst < 4) {
+                            sNst++;
+                            StackTraceElement[] st = Thread.currentThread().getStackTrace();
+                            StringBuilder sb = new StringBuilder();
+                            for (int i = 2; i < st.length && i < 22; i++) {
+                                sb.append(" <- ").append(st[i].getClassName()).append('#').append(st[i].getMethodName());
+                            }
+                            h26("NST [" + sNst + "]" + sb);
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        if (sSign >= 12) {
+                            return;
+                        }
+                        sSign++;
+                        StringBuilder sb = new StringBuilder();
+                        for (Object o : p.args) {
+                            sb.append("|").append(o == null ? "null" : (o instanceof byte[] ? ("b" + ((byte[]) o).length) : cut(String.valueOf(o))));
+                        }
+                        h26("NSIGN [" + sSign + "] args" + sb + " ret=" + cut(String.valueOf(p.getResult())));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L231");
+        } catch (Throwable t) {
+            log("L232" + t);
+        }
+    }
+
+    private static int sConv = 0;
+
+    private void h59() {
+        try {
+            Class<?> k = XposedHelpers.findClass("io.ktor.client.engine.okhttp.OkHttpEngineKt", CL);
+            XposedBridge.hookAllMethods(k, "convertToOkHttpRequest", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        if (sConv >= 5) {
+                            return;
+                        }
+                        sConv++;
+                        Object r = p.getResult();
+                        Object hd = XposedHelpers.callMethod(r, "headers");
+                        String hs = String.valueOf(hd).replace('\n', '|');
+                        boolean goepp = hs.contains("Goepp");
+                        h26("CONV [" + sConv + "] goepp=" + goepp + " hdrs=" + cut(hs));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L221");
+        } catch (Throwable t) {
+            log("L222" + t);
+        }
+    }
+
+    private static int sBctor = 0;
+    private static volatile boolean sInited = false;
+
+    private void h57() {
+        try {
+            Class<?> rb = XposedHelpers.findClass("okhttp3.Request$Builder", CL);
+            XposedBridge.hookAllConstructors(rb, new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        if (!sInited) {
+                            return;
+                        }
+                        if (sBctor >= 5) {
+                            return;
+                        }
+                        sBctor++;
+                        StringBuilder sb = new StringBuilder();
+                        StackTraceElement[] st = new Throwable().getStackTrace();
+                        for (int i = 0; i < st.length && i < 14; i++) {
+                            sb.append(i == 0 ? "" : " <- ").append(st[i].getClassName())
+                              .append('#').append(st[i].getMethodName());
+                        }
+                        h26("BCTORSTK [" + sBctor + "] this=" + (p.thisObject == null ? "null" : p.thisObject.getClass().getName()) + " " + sb);
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L211");
+        } catch (Throwable t) {
+            log("L212" + t);
+        }
+    }
+
+    private static int sBctor_dummy = 0;
+
+    private void h56() {
+        try {
+            final Class<?> nl = XposedHelpers.findClass("com.ty.core.NativeLib", CL);
+            String[] bs = {"play", "play_1", "play_2", "play_3", "play_4", "play_5", "play_6"};
+            for (final String m : bs) {
+                XposedBridge.hookAllMethods(nl, m, new XC_MethodHook() {
+                    protected void beforeHookedMethod(MethodHookParam p) {
+                        h26("NAT " + m + " -> true");
+                        p.setResult(Boolean.TRUE);
+                    }
+                });
+            }
+            XposedBridge.hookAllMethods(nl, "play_7", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    h26("NAT play_7 -> 1");
+                    p.setResult(Integer.valueOf(1));
+                }
+            });
+            log("L201");
+        } catch (Throwable t) {
+            log("L202" + t);
+        }
+        try {
+            final Class<?> sf = XposedHelpers.findClass("com.ty.core.SecureFuck", CL);
+            XposedBridge.hookAllMethods(sf, "luoCheckCrcLibc", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    p.setResult(Boolean.TRUE);
+                }
+            });
+            XposedBridge.hookAllMethods(sf, "secureFuckCallback", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    h26("SF callback blocked");
+                    p.setResult(null);
+                }
+            });
+            log("L203");
+        } catch (Throwable t) {
+            log("L204" + t);
+        }
+    }
+
+    private void h49() {
+        try {
+            Class<?> rb = XposedHelpers.findClass("okhttp3.Request$Builder", CL);
+            XposedBridge.hookAllMethods(rb, "url", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        if (p.args.length == 1 && p.args[0] instanceof String && cfg("host_rewrite", false)) {
+                            String u = (String) p.args[0];
+                            String n = fixHost(u);
+                            if (n != null) {
+                                p.args[0] = n;
+                                h26("URL REWRITE " + cut(n));
+                            }
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        if (p.args.length == 1 && p.args[0] instanceof String) {
+                            h26("URL " + cut(p.args[0]));
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L191");
+        } catch (Throwable t) {
+            log("L192" + t);
+        }
+        try {
+            Class<?> rq = XposedHelpers.findClass("okhttp3.Request", CL);
+            XposedBridge.hookAllMethods(rq, "newBuilder", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        Object u = XposedHelpers.callMethod(p.getResult(), "url");
+                        h26("URL re " + cut(String.valueOf(u)));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L193");
+        } catch (Throwable t) {
+            log("L194" + t);
+        }
+        try {
+            Class<?> hc = XposedHelpers.findClass("okhttp3.HttpUrl$Companion", CL);
+            XC_MethodHook hh = new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        if (p.args.length == 1 && p.args[0] instanceof String) {
+                            String n = fixHost((String) p.args[0]);
+                            if (n != null) {
+                                p.args[0] = n;
+                                h26("HURL REWRITE " + cut(n));
+                            } else {
+                                h26("HURL " + cut((String) p.args[0]));
+                            }
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            };
+            XposedBridge.hookAllMethods(hc, "get", hh);
+            XposedBridge.hookAllMethods(hc, "parse", hh);
+            log("L195");
+        } catch (Throwable t) {
+            log("L196" + t);
+        }
+        try {
+            Class<?> sg = XposedHelpers.findClass("com.yy.myuko.api.secure.ApiSignatureSigner", CL);
+            XC_MethodHook sh = new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("SIGN <- " + cut(String.valueOf(p.getResult())));
+                        if (!sFixDone
+                                && "sign".equals(p.method.getName())
+                                && p.args.length == 4) {
+                            sFixDone = true;
+                            Object r = XposedHelpers.callStaticMethod(p.method.getDeclaringClass(),
+                                    "sign", Long.valueOf(1700000000L), "probe", "probe", "probe");
+                            h26("SIGNFIX=" + r);
+                        }
+                    } catch (Throwable fx) {
+                        h26("SIGNFIXERR " + fx);
+                    }
+                }
+            };
+            try {
+                final java.util.Set<String> acls = java.util.Collections.synchronizedSet(new java.util.HashSet<String>());
+                XC_MethodHook hh = new XC_MethodHook() {
+                    protected void beforeHookedMethod(MethodHookParam p) {
+                        try {
+                            String cn = p.thisObject == null ? "null" : p.thisObject.getClass().getName();
+                            if (acls.add(cn)) {
+                                StringBuilder sb = new StringBuilder("AHDR " + cn);
+                                Class<?> k = p.thisObject.getClass();
+                                for (java.lang.reflect.Method m : k.getDeclaredMethods()) {
+                                    sb.append(" | ").append(m.getName()).append('(');
+                                    Class<?>[] ps = m.getParameterTypes();
+                                    for (int i = 0; i < ps.length; i++) {
+                                        sb.append(i == 0 ? "" : ",").append(ps[i].getSimpleName());
+                                    }
+                                    sb.append(')');
+                                    if ((m.getModifiers() & java.lang.reflect.Modifier.NATIVE) != 0) {
+                                        sb.append("[native]");
+                                    }
+                                }
+                                h26(sb.toString());
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+
+                    protected void afterHookedMethod(MethodHookParam p) {
+                        try {
+                            String nm = String.valueOf(p.args[0]);
+                            if (nm.toLowerCase().contains("goepp") && !sGoeppTrace) {
+                                sGoeppTrace = true;
+                                StringBuilder sb = new StringBuilder("GSTACK");
+                                StackTraceElement[] st = new Throwable().getStackTrace();
+                                for (int i = 0; i < st.length && i < 12; i++) {
+                                    sb.append(" <- ").append(st[i].getClassName()).append('#')
+                                      .append(st[i].getMethodName());
+                                }
+                                h26(sb.toString());
+                            }
+                            String n = nm.toLowerCase();
+                            if (n.contains("sign") || n.contains("auth") || n.startsWith("x-")
+                                    || n.contains("token") || n.contains("device")) {
+                                h26("HDR " + p.args[0] + "=" + cut(String.valueOf(p.args[1])));
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                };
+                Class<?> rb = XposedHelpers.findClass("okhttp3.Request$Builder", CL);
+                XposedBridge.hookAllMethods(rb, "addHeader", hh);
+                XC_MethodHook ctor = new XC_MethodHook() {
+                    protected void afterHookedMethod(MethodHookParam p) {
+                        try {
+                            String cn = p.thisObject == null ? "null" : p.thisObject.getClass().getName();
+                            if (sBuilders.add(cn)) {
+                                h26("BCTOR " + cn);
+                                if (!"okhttp3.Request$Builder".equals(cn)) {
+                                    StringBuilder sb = new StringBuilder("BMEM " + cn);
+                                    Class<?> k = p.thisObject.getClass();
+                                    for (java.lang.reflect.Method m : k.getDeclaredMethods()) {
+                                        sb.append(" | ").append(m.getName()).append('(');
+                                        Class<?>[] ps = m.getParameterTypes();
+                                        for (int i = 0; i < ps.length; i++) {
+                                            sb.append(i == 0 ? "" : ",").append(ps[i].getSimpleName());
+                                        }
+                                        sb.append(')');
+                                    }
+                                    for (java.lang.reflect.Field f : k.getDeclaredFields()) {
+                                        sb.append(" | f:").append(f.getName()).append(':')
+                                          .append(f.getType().getSimpleName());
+                                    }
+                                    h26(sb.toString());
+                                }
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                };
+                XposedBridge.hookAllConstructors(rb, ctor);
+                XC_MethodHook bh = new XC_MethodHook() {
+                    protected void afterHookedMethod(MethodHookParam p) {
+                        if (sInjecting || !cfg("goepp_probe", false)) {
+                            return;
+                        }
+                        try {
+                            Object rq = p.getResult();
+                            if (rq == null) {
+                                return;
+                            }
+                            Object hd = XposedHelpers.callMethod(rq, "header", "X-Goepp-Client-Probe");
+                            if (hd != null) {
+                                return;
+                            }
+                            Object nb = XposedHelpers.callMethod(rq, "newBuilder");
+                            try {
+                                Class<?> nk = nb.getClass();
+                                if (sBuilders.add("NB:" + nk.getName())) {
+                                    StringBuilder s2 = new StringBuilder("NB " + nk.getName());
+                                    for (java.lang.reflect.Method m : nk.getDeclaredMethods()) {
+                                        s2.append(" | ").append(m.getName());
+                                    }
+                                    for (java.lang.reflect.Field f : nk.getDeclaredFields()) {
+                                        s2.append(" | f:").append(f.getName());
+                                    }
+                                    h26(s2.toString());
+                                }
+                            } catch (Throwable ignored) {
+                            }
+                            XposedHelpers.callMethod(nb, "addHeader", "X-Goepp-Client-Probe", "522828731F1A016B");
+                            sInjecting = true;
+                            try {
+                                p.setResult(XposedHelpers.callMethod(nb, "build"));
+                            } finally {
+                                sInjecting = false;
+                            }
+                            h26("GINJ ok");
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                };
+                XposedBridge.hookAllMethods(rb, "build", bh);
+            try {
+                Class<?> sv = XposedHelpers.findClass("io.ktor.util.StringValuesBuilderImpl", CL);
+                XC_MethodHook ap = new XC_MethodHook() {
+                    protected void beforeHookedMethod(MethodHookParam p) {
+                        try {
+                            if (p.args.length != 2) {
+                                return;
+                            }
+                            String nm = String.valueOf(p.args[0]);
+                            if (nm.toLowerCase().contains("oepp")) {
+                                h26("KAPP " + nm + "=" + cut(String.valueOf(p.args[1])));
+                                if (sKstack < 3) {
+                                    sKstack++;
+                                    StringBuilder sb = new StringBuilder("KSTACK");
+                                    StackTraceElement[] st = new Throwable().getStackTrace();
+                                    for (int i = 0; i < st.length && i < 14; i++) {
+                                        sb.append(" <- ").append(st[i].getClassName()).append('#')
+                                          .append(st[i].getMethodName());
+                                    }
+                                    h26(sb.toString());
+                                }
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                };
+                XposedBridge.hookAllMethods(sv, "append", ap);
+                Class<?> ccfg = XposedHelpers.findClass("io.ktor.client.HttpClientConfig", CL);
+                XC_MethodHook pl = new XC_MethodHook() {
+                    protected void beforeHookedMethod(MethodHookParam p) {
+                        try {
+                            Object a0 = p.args.length > 0 ? p.args[0] : null;
+                            String nm = a0 == null ? "null" : a0.getClass().getName();
+                            if (sBuilders.add("PLG:" + nm)) {
+                                h26("PLG " + nm);
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                };
+                XposedBridge.hookAllMethods(ccfg, "install", pl);
+                try {
+                    Class<?> cpi = XposedHelpers.findClass("io.ktor.client.plugins.api.ClientPluginImpl", CL);
+                    XC_MethodHook cpc = new XC_MethodHook() {
+                        protected void afterHookedMethod(MethodHookParam p) {
+                            try {
+                                String cn = p.thisObject == null ? "null" : p.thisObject.getClass().getName();
+                                if (sBuilders.add("CPI:" + cn)) {
+                                    h26("CPI " + cn);
+                                }
+                            } catch (Throwable ignored) {
+                            }
+                        }
+                    };
+                    XposedBridge.hookAllConstructors(cpi, cpc);
+                    log("L205");
+                } catch (Throwable t) {
+                    log("L206" + t);
+                }
+                log("L203");
+            } catch (Throwable t) {
+                log("L204" + t);
+            }
+                log("L202");
+                log("L201");
+                XposedBridge.hookAllMethods(rb, "header", hh);
+                log("L199");
+            } catch (Throwable t) {
+                log("L200" + t);
+            }
+            XposedBridge.hookAllMethods(sg, "sign", sh);
+            XposedBridge.hookAllMethods(sg, "signSelfDerivedOrNull", sh);
+            XposedBridge.hookAllMethods(sg, "signRequestOrNull", sh);
+            log("L197");
+        } catch (Throwable t) {
+            log("L196" + t);
+        }
+        try {
+
+        } catch (Throwable t) {
+            log("L198" + t);
+        }
+    }
+
+    private void h48() {
+        try {
+            Class<?> si = XposedHelpers.findClass(
+                    "com.yy.myuko.component.ktor.addressing.rdic.SemanticInvoker", CL);
+            XposedBridge.hookAllMethods(si, "invoke", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("API op=" + cut(p.args[0]) + " path=" + cut(p.args[1]));
+                    } catch (Throwable ignored) {
+                    }
+                }
+
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        Object r = p.getResult();
+                        if (r == null || r.getClass().getName().contains("CoroutineSingletons")) {
+                            return;
+                        }
+                        String s = String.valueOf(r);
+                        h26("API <- " + r.getClass().getSimpleName() + " len=" + s.length()
+                                + " head=" + (s.length() > 180 ? s.substring(0, 180) : s));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L181");
+        } catch (Throwable t) {
+            log("L182" + t);
+        }
+    }
+
+    private void h47() {
+        try {
+            Class<?> c = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.SecurityAttestCoordinator", CL);
+            XposedBridge.hookAllMethods(c, "runOnce", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("COORD <- " + cut(p.getResult()));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L171");
+        } catch (Throwable t) {
+            log("L172" + t);
+        }
+    }
+
+    private void h46() {
+        String pk = "com.yy.myuko.shared.data.security.integrity.";
+        try {
+            final Class<?> ds = XposedHelpers.findClass(pk + "OfficialGuideDismissStore", CL);
+            XposedBridge.hookAllMethods(ds, "suppressedUntilMs", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    p.setResult(Long.valueOf(Long.MAX_VALUE));
+                }
+            });
+            XposedBridge.hookAllMethods(ds, "setSuppressedUntilMs", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    if (p.args.length > 0) {
+                        p.args[0] = Long.valueOf(Long.MAX_VALUE);
+                    }
+                }
+            });
+            log("L161");
+        } catch (Throwable t) {
+            log("L162" + t);
+        }
+        try {
+            final Class<?> nt = XposedHelpers.findClass(pk + "OfficialGuideNotifier", CL);
+            final Class<?> sfKt = XposedHelpers.findClass("kotlinx.coroutines.flow.StateFlowKt", CL);
+            XposedBridge.hookAllMethods(nt, "offer", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("GUIDE raw " + cut(p.args.length > 0 ? p.args[0] : null));
+                    } catch (Throwable ignored) {
+                    }
+                    p.setResult(null);
+                }
+            });
+            XposedBridge.hookAllMethods(nt, "getGuide", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        p.setResult(XposedHelpers.callStaticMethod(sfKt, "MutableStateFlow",
+                                new Class[]{Object.class}, new Object[]{null}));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L163");
+        } catch (Throwable t) {
+            log("L164" + t);
+        }
+        try {
+            Class<?> ov = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.presentation.security.OfficialGuideOverlay", CL);
+            XposedBridge.hookAllMethods(ov, "Content", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    p.setResult(null);
+                }
+            });
+            Class<?> ovk = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.presentation.security.OfficialGuideOverlayKt", CL);
+            XposedBridge.hookAllMethods(ovk, "OfficialGuideDialog", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    p.setResult(null);
+                }
+            });
+            log("L165");
+        } catch (Throwable t) {
+            log("L166" + t);
+        }
+    }
+
+    private void h45() {
+        try {
+            Class<?> req = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.SecurityAttestRequest", CL);
+            XposedBridge.hookAllConstructors(req, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        StringBuilder sb = new StringBuilder("RAWREQ");
+                        for (int i = 0; i < p.args.length; i++) {
+                            sb.append(' ').append(i).append('=').append(cut(p.args[i]));
+                        }
+                        h26(sb.toString());
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L95");
+        } catch (Throwable t) {
+            log("L96" + t);
+        }
+        try {
+            Class<?> api = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.SecurityAttestApi", CL);
+            XposedBridge.hookAllMethods(api, "report", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("REPORT <- " + cut(p.getResult()));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L97");
+        } catch (Throwable t) {
+            log("L98" + t);
+        }
+        try {
+            Class<?> dp = XposedHelpers.findClass(
+                    "com.yy.myuko.feature.deviceinfo.AndroidDeviceProvider", CL);
+            XposedBridge.hookAllMethods(dp, "*", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        Object r = p.getResult();
+                        if (r instanceof String) {
+                            h26("DEVID " + p.method.getName() + "=" + cut(r));
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L99");
+        } catch (Throwable t) {
+            log("L100" + t);
+        }
+    }
+
+    private void h44() {
+        String[][] targets = {
+                {"com.yy.myuko.feature.encryptionsdk.bridge.MagicFingerprintLib", "nativeBootstrapDeriveCandidateKeys"},
+                {"com.yy.myuko.feature.encryptionsdk.bridge.MagicFingerprintLib", "maesProcess"},
+                {"com.yy.myuko.feature.encryptionsdk.bridge.MagicSdkLib", "init"},
+                {"com.yy.myuko.feature.encryptionsdk.bridge.MagicSdkLib", "hmacSha256"},
+                {"com.yy.myuko.component.ktor.addressing.ZhuqueSessionNativeLib", "nativeDeviceContextInit"},
+                {"com.yy.myuko.api.secure.ApiSignatureNativeLib", "nativeSign"}
+        };
+        for (String[] tg : targets) {
+            try {
+                Class<?> c = XposedHelpers.findClass(tg[0], CL);
+                XposedBridge.hookAllMethods(c, tg[1], new XC_MethodHook() {
+                    protected void beforeHookedMethod(MethodHookParam p) {
+                        try {
+                            fixSigBytes(p.args);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                });
+                log("L91 " + tg[1]);
+            } catch (Throwable t) {
+                log("L92 " + tg[1] + t);
+            }
+        }
+    }
+
+    private void h43() {
+        String[] exts = {
+                "com.yy.myuko.application.security.HwAttestationExtender",
+                "com.yy.myuko.application.security.SecurityAttestExtender",
+                "com.yy.myuko.application.risk.RiskAttestationExtender"
+        };
+        for (String n : exts) {
+            try {
+                Class<?> c = XposedHelpers.findClass(n, CL);
+                XposedBridge.hookAllMethods(c, "doRunning", new XC_MethodHook() {
+                    protected void beforeHookedMethod(MethodHookParam p) {
+                        try {
+                            p.setResult(null);
+                            h26("HW skip " + p.method.getDeclaringClass().getSimpleName());
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                });
+                log("L81 " + n);
+            } catch (Throwable t) {
+                log("L82 " + n + t);
+            }
+        }
+        try {
+            Class<?> ah = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.attestation.AndroidHardwareAttestation",
+                    CL);
+            XposedBridge.hookAllMethods(ah, "attestCertChain", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        p.setResult(null);
+                        h26("HW attestCertChain blocked");
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            XposedBridge.hookAllMethods(ah, "access$generateAttestedKey", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        p.setResult(null);
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L83");
+        } catch (Throwable t) {
+            log("L84" + t);
+        }
+    }
+
+    private void h42() {
+        try {
+            Class<?> apm = Class.forName("android.app.ApplicationPackageManager");
+            XposedBridge.hookAllMethods(apm, "getPackageInfo",
+                    new XC_MethodHook() {
+                        protected void afterHookedMethod(MethodHookParam p) {
+                            spoofPackageInfo(p.getResult());
+                        }
+                    });
+            XposedBridge.hookAllMethods(apm, "getPackageArchiveInfo",
+                    new XC_MethodHook() {
+                        protected void afterHookedMethod(MethodHookParam p) {
+                            spoofPackageInfo(p.getResult());
+                        }
+                    });
+            log("L71");
+        } catch (Throwable t) {
+            log("L72" + t);
+        }
+    }
+
+    private void h40() {
+        ClassLoader cl = CL;
+        if (cl == null) {
+            return;
+        }
+        try {
+            Class<?> insp = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.AndroidIntegrityInspector", cl);
+            XposedBridge.hookAllMethods(insp, "readRuntimeApkSignatureSha256", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    safeSetResult(p, SIG_OFFICIAL);
+                }
+            });
+            log("L51");
+        } catch (Throwable t) {
+            log("L52" + t);
+        }
+        try {
+            Class<?> nsr = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.NativeSigResult", cl);
+            XposedBridge.hookAllConstructors(nsr, new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        XposedHelpers.setObjectField(p.thisObject, "signature", SIG_OFFICIAL);
+                        XposedHelpers.setObjectField(p.thisObject, "status", "verified");
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L53");
+        } catch (Throwable t) {
+            log("L54" + t);
+        }
+        try {
+            Class<?> req = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.SecurityAttestRequest", cl);
+            XposedBridge.hookAllConstructors(req, new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    scrubAttest(p.thisObject);
+                }
+            });
+            log("L55");
+        } catch (Throwable t) {
+            log("L56" + t);
+        }
+        try {
+            Class<?> vc = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.SecurityAttestVerdict", cl);
+            XposedBridge.hookAllConstructors(vc, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        StringBuilder sb = new StringBuilder("VERDICT raw");
+                        for (int i = 0; i < p.args.length; i++) {
+                            sb.append(' ').append(i).append('=').append(cut(p.args[i]));
+                        }
+                        h26(sb.toString());
+                    } catch (Throwable ignored) {
+                    }
+                }
+
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        XposedHelpers.setObjectField(p.thisObject, "action", "none");
+                        XposedHelpers.setObjectField(p.thisObject, "officialUrl", "");
+                        XposedHelpers.setObjectField(p.thisObject, "reasons",
+                                java.util.Collections.emptyList());
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L57");
+        } catch (Throwable t) {
+            log("L58" + t);
+        }
+        // 5) 设备指纹里的应用签名（API 请求体携带这一项，服务端按它对内容做拦截）
+        try {
+            Class<?> adp = XposedHelpers.findClass(
+                    "com.yy.myuko.feature.deviceinfo.AndroidDeviceProvider", cl);
+            XposedBridge.hookAllMethods(adp, "getAppSignatureSha256", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    h26("FP sha256 原值=" + p.getResult());
+                    safeSetResult(p, SIG_OFFICIAL);
+                }
+            });
+            XposedBridge.hookAllMethods(adp, "getAppSignatureCertDer", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    safeSetResult(p, SIG_CERT_DER);
+                }
+            });
+            log("L61");
+        } catch (Throwable t) {
+            log("L62" + t);
+        }
+        try {
+            Class<?> kt = XposedHelpers.findClass(
+                    "com.yy.myuko.feature.deviceinfo.DeviceProvider_androidKt", cl);
+            for (String mn : new String[]{"resolveAppSignatureSha256", "selectAppSignatureSha256"}) {
+                XposedBridge.hookAllMethods(kt, mn, new XC_MethodHook() {
+                    protected void afterHookedMethod(MethodHookParam p) {
+                        h26("FP " + p.method.getName() + " 原值=" + p.getResult());
+                        safeSetResult(p, SIG_OFFICIAL);
+                    }
+                });
+            }
+            XposedBridge.hookAllMethods(kt, "resolveAppSignatureCertDer", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    safeSetResult(p, SIG_CERT_DER);
+                }
+            });
+            log("L63");
+        } catch (Throwable t) {
+            log("L64" + t);
+        }
+        // 5b) native 脚本桥：把所有 op 与返回值记下来（改包判定很可能走这里）
+        try {
+            Class<?> nsr = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.NativeScriptRunner", cl);
+            XposedBridge.hookAllMethods(nsr, "run", new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("NS op=" + p.args[0] + " a=" + cut(p.args[1]) + " b=" + cut(p.args[2]));
+                    } catch (Throwable ignored) {
+                    }
+                }
+
+                protected void afterHookedMethod(MethodHookParam p) {
+                    try {
+                        h26("NS <- " + cut(p.getResult()));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("L67");
+        } catch (Throwable t) {
+            log("L68" + t);
+        }
+        // 6) 记录真实上报内容与判定，便于定位
+        try {
+            Class<?> gnotif = XposedHelpers.findClass(
+                    "com.yy.myuko.shared.data.security.integrity.OfficialGuideNotifier", cl);
+            XposedBridge.hookAllMethods(gnotif, "offer", new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam p) {
+                    Object v = p.args != null && p.args.length > 0 ? p.args[0] : null;
+                    h26("GUIDE offer " + v);
+                }
+            });
+            log("L65");
+        } catch (Throwable t) {
+            log("L66" + t);
+        }
+    }
+
+    private static final String CERT_DER_B64 = "MIIDRzCCAi+gAwIBAgIEOZfzfDANBgkqhkiG9w0BAQsFADBTMQswCQYDVQQGEwJjbjELMAkGA1UECBMCYnYxCzAJBgNVBAcTAnBrMQ0wCwYDVQQKEwR0amF4MQ0wCwYDVQQLEwR0amF4MQwwCgYDVQQDEwN5enMwIBcNMjQwOTExMDEyODQ3WhgPMjA2MzAxMTAwMTI4NDdaMFMxCzAJBgNVBAYTAmNuMQswCQYDVQQIEwJidjELMAkGA1UEBxMCcGsxDTALBgNVBAoTBHRqYXgxDTALBgNVBAsTBHRqYXgxDDAKBgNVBAMTA3l6czCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKbcaD5vhksvYyvUvtLQvvacGv129oQE0dgTwxdfOHQAN1V3lcayud6BM3nY7Nr8YOUAWxS90fp9XhR3izmIXhYvH2ZvhsLaboICdmI1SAR35/rvOlxCeuzo5GEFF1e3ZcjU/BDUc/rgDU1jcoX6X5Kadhy/oo1mxr2fwRmVnU2ttvk5H8tMQjn/g6ReLnhfgyd866kdkyGC3BxMcER6P3dyEKNdqxBQseS8lxkWuPbi4V9hVcX6xAg4OMsxCXhp3BhmM7K2IJo73O1qXbKL3VltUHAMO8Sj6BLU4e+ZAUAChppQlJ2X3Pbdy+q5wFSWukOX7SZMjZonBW64FtKcVKsCAwEAAaMhMB8wHQYDVR0OBBYEFH+FmOVzIiG1d8ynjKIWUhaUo01dMA0GCSqGSIb3DQEBCwUAA4IBAQAg6UheCCOipgyP7gBHxQfI1gpClvXyFZg0MQz62hLnDzW4XQZNm3dw5t/FMb8f3FHT+JQ92GAw1kcu8a+ZyhDITMsalEToc/VUnwt1D7OTGIQsq6YABpxCvGOewZb1U/jxInB0U725CIurNab8Y1aspbZUiohKQ/qjwXmmZph1UMmXX5I4bXtsh0ueZlI3pdKCyH+nX1HhZiz3UtV2U9hljmm0PGvcyTv2S/1Zw2HLJkXS6NS/Or5JsiiIdwJeor3Fns57Ui9ENrLZyert1h8UP24W+AZfOIMTrl1x+OUd5cy5WC7J2VypY6VI+hgy1NsPb8EqTXahznIVqRZ6irhO";
+
+    private static volatile Object sOrigSigs;
+
+    private static Object origSignatures() {
+        Object cached = sOrigSigs;
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            byte[] der = android.util.Base64.decode(CERT_DER_B64, android.util.Base64.DEFAULT);
+            android.content.pm.Signature[] arr = new android.content.pm.Signature[]{
+                    new android.content.pm.Signature(der)};
+            sOrigSigs = arr;
+            return arr;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static void spoofPackageInfo(Object info) {
+        try {
+            if (!(info instanceof android.content.pm.PackageInfo)) {
+                return;
+            }
+            android.content.pm.PackageInfo pi = (android.content.pm.PackageInfo) info;
+            if (pi.packageName == null || !isTarget(pi.packageName)) {
+                return;
+            }
+            Object sigs = origSignatures();
+            if (sigs == null) {
+                return;
+            }
+            android.content.pm.Signature[] arr = (android.content.pm.Signature[]) sigs;
+            pi.signatures = arr;
+            if (android.os.Build.VERSION.SDK_INT >= 28) {
+                try {
+                    Object si = Class.forName("android.content.pm.SigningInfo")
+                            .getConstructor(android.content.pm.Signature[].class)
+                            .newInstance((Object) arr);
+                    XposedHelpers.setObjectField(pi, "signingInfo", si);
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static String cut(Object o) {
+        if (o == null) {
+            return "null";
+        }
+        String s = String.valueOf(o);
+        return s.length() > 160 ? s.substring(0, 160) + "…" : s;
+    }
+
+    private static final String CLEAN_DETAIL =
+            "{\"secure\":\"Available\",\"nVa\":\"1\",\"nMagisk\":\"1\",\"nFrida\":\"1\","
+                    + "\"nXposed\":\"1\",\"nMagiskFile\":\"1\",\"sigCheck\":\"1\",\"libcCrc\":\"1\"}";
+
+    private static String fixHost(String u) {
+        if (u == null || u.isEmpty()) {
+            return null;
+        }
+        for (String bad : BAD_HOSTS) {
+            if (u.contains(bad)) {
+                return u.replace("http://" + bad, "https://" + GOOD_HOST)
+                        .replace("https://" + bad, "https://" + GOOD_HOST)
+                        .replace(bad, GOOD_HOST);
+            }
+        }
+        // 任何 /api/ 业务请求，主机一律钉到官方域名（节点列表会轮换，按名单拦截追不上）
+        int pi = u.indexOf("/api/");
+        if (pi > 0) {
+            int s0 = u.indexOf("://");
+            if (s0 > 0) {
+                int h0 = s0 + 3;
+                String host0 = u.substring(h0, pi);
+                if (!GOOD_HOST.equals(host0)) {
+                    return "https://" + GOOD_HOST + u.substring(pi);
+                }
+            }
+        }
+        int i = u.indexOf("://");
+        if (i > 0) {
+            int s = i + 3;
+            int e = u.indexOf('/', s);
+            String host = e > 0 ? u.substring(s, e) : u.substring(s);
+            if (host.matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d+)?")) {
+                return u.substring(0, s) + GOOD_HOST + (e > 0 ? u.substring(e) : "");
+            }
+        }
+        return null;
+    }
+
+    private static void scrubAttest(Object req) {
+        if (req == null) {
+            return;
+        }
+        try {
+            h26("ATTEST 原始 repackaged="
+                    + XposedHelpers.getObjectField(req, "repackaged")
+                    + " sig=" + XposedHelpers.getObjectField(req, "runtimeApkSignature")
+                    + " native=" + XposedHelpers.getObjectField(req, "runtimeApkSignatureNative")
+                    + " nativeStatus=" + XposedHelpers.getObjectField(req, "nativeSigStatus")
+                    + " root=" + XposedHelpers.getObjectField(req, "rootDetected")
+                    + " xposed=" + XposedHelpers.getObjectField(req, "xposedDetected")
+                    + " debug=" + XposedHelpers.getObjectField(req, "debuggerDetected")
+                    + " emu=" + XposedHelpers.getObjectField(req, "emulatorDetected"));
+        } catch (Throwable ignored) {
+        }
+        try {
+            XposedHelpers.setObjectField(req, "repackaged", Boolean.FALSE);
+        } catch (Throwable ignored) {
+        }
+        try {
+            XposedHelpers.setObjectField(req, "runtimeApkSignature", SIG_OFFICIAL);
+        } catch (Throwable ignored) {
+        }
+        try {
+            XposedHelpers.setObjectField(req, "runtimeApkSignatureNative", SIG_OFFICIAL);
+        } catch (Throwable ignored) {
+        }
+        try {
+            XposedHelpers.setObjectField(req, "nativeSigStatus", "verified");
+        } catch (Throwable ignored) {
+        }
+        String[] flags = {"rootDetected", "debuggerDetected", "emulatorDetected", "xposedDetected",
+                "captureDetected", "honeypotTripped"};
+        for (String f : flags) {
+            try {
+                XposedHelpers.setObjectField(req, f, Boolean.FALSE);
+            } catch (Throwable ignored) {
+            }
+        }
+        try {
+            XposedHelpers.setObjectField(req, "hookFrameworks", java.util.Collections.emptyList());
+        } catch (Throwable ignored) {
+        }
+        try {
+            XposedHelpers.setObjectField(req, "mapsSuspiciousLibs", java.util.Collections.emptyList());
+        } catch (Throwable ignored) {
+        }
+        try {
+            XposedHelpers.setObjectField(req, "detail", CLEAN_DETAIL);
+        } catch (Throwable ignored) {
+        }
+    }
+
     private void h34() {
         int n = 0;
         String[] tinker = {"isTinkerEnabled", "isTinkerEnabledAll", "isTinkerEnabledForArkHot",

@@ -26,7 +26,19 @@ import java.util.zip.ZipFile;
 /** 桌面入口：一屏看完的模块状态页。 */
 public class SettingsActivity extends Activity {
 
-    private static final String TARGET_PKG = "com.sdmnfowa.soad.p1";
+    private static final String[] TARGETS = {"com.sdmnfowa.soad.p1"};
+    private static android.content.Context sCtx;
+
+    private static String hostPkg() {
+        for (int i = 0; i < TARGETS.length; i++) {
+            try {
+                sCtx.getPackageManager().getPackageInfo(TARGETS[i], 0);
+                return TARGETS[i];
+            } catch (Throwable ignored) {
+            }
+        }
+        return TARGETS[0];
+    }
     private static final String SELF_PKG = "com.klgc.animerepublic";
     private static final int C_TITLE = 0xFF16181D;
     private static final int C_SUB = 0xFF6E7681;
@@ -53,6 +65,7 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onCreate(android.os.Bundle b) {
         super.onCreate(b);
+        sCtx = this;
         bindFramework();
         try {
             int[] pal = pickSoftPalette();
@@ -204,7 +217,7 @@ public class SettingsActivity extends Activity {
                 }
             };
             Intent it = new Intent("com.klgc.animerepublic.PING");
-            it.setPackage("com.sdmnfowa.soad.p1");
+            it.setPackage(hostPkg());
             sendOrderedBroadcast(it, null, rv, null, 0, null, null);
             synchronized (lock) {
                 if (out[0] == null) {
@@ -280,7 +293,7 @@ public class SettingsActivity extends Activity {
                 apiVal = svc.getApiVersion();
                 prot = (svc.getFrameworkProperties() & 4L) != 0;
                 java.util.List<String> scopeList = svc.getScope();
-                boolean inScope = scopeList != null && scopeList.contains(TARGET_PKG);
+                boolean inScope = scopeList != null && scopeList.contains(hostPkg());
                 scopeText = (scopeList == null ? 0 : scopeList.size()) + " 个应用" + (inScope ? "（含宿主）" : "（未含宿主）");
             } catch (Throwable ignored) {
             }
@@ -314,12 +327,22 @@ public class SettingsActivity extends Activity {
         gd.addView(two("开关位置", "「我的」→ 长按左上角头像 0.5 秒", 0));
         col.addView(gd, cardLp());
 
-        // 第三张卡：宿主
+        // 第三张卡：宿主列表（每行右侧一个「打开」小按钮）
         LinearLayout app = card();
-        app.addView(appRow());
-        col.addView(app, cardLp());
-
-        col.addView(openButton());
+        boolean firstRow = true;
+        for (int hi = 0; hi < TARGETS.length; hi++) {
+            if (!installed(TARGETS[hi])) {
+                continue;
+            }
+            if (!firstRow) {
+                app.addView(divider());
+            }
+            firstRow = false;
+            app.addView(hostRow(TARGETS[hi]));
+        }
+        if (!firstRow) {
+            col.addView(app, cardLp());
+        }
 
         TextView foot = new TextView(this);
         foot.setText("本破解免费使用");
@@ -414,7 +437,47 @@ public class SettingsActivity extends Activity {
         return r;
     }
 
-    private LinearLayout appRow() {
+    private View divider() {
+        View d = new View(this);
+        d.setBackgroundColor(0xFFEDEFF2);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        lp.leftMargin = dp(58);
+        d.setLayoutParams(lp);
+        return d;
+    }
+
+    private View hostRow(final String pkg) {
+        LinearLayout r = (LinearLayout) appRow(pkg);
+        TextView btn = new TextView(this);
+        btn.setText("打开");
+        btn.setTextSize(13f);
+        btn.setTextColor(0xFF3482FF);
+        btn.setGravity(Gravity.CENTER);
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(0x1A3482FF);
+        g.setCornerRadius(dp(14));
+        btn.setBackground(g);
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(dp(62), dp(30));
+        blp.rightMargin = dp(2);
+        btn.setLayoutParams(blp);
+        btn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                try {
+                    Intent it = getPackageManager().getLaunchIntentForPackage(pkg);
+                    if (it != null) {
+                        it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(it);
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        });
+        r.addView(btn);
+        return r;
+    }
+
+    private LinearLayout appRow(String pkg) {
         LinearLayout r = new LinearLayout(this);
         r.setOrientation(LinearLayout.HORIZONTAL);
         r.setGravity(Gravity.CENTER_VERTICAL);
@@ -422,7 +485,7 @@ public class SettingsActivity extends Activity {
 
         ImageView iv = new ImageView(this);
         try {
-            iv.setImageDrawable(getPackageManager().getApplicationIcon(TARGET_PKG));
+            iv.setImageDrawable(getPackageManager().getApplicationIcon(pkg));
         } catch (Throwable ignored) {
             iv.setBackgroundColor(0x22304050);
         }
@@ -436,14 +499,14 @@ public class SettingsActivity extends Activity {
         r.addView(texts, tlp);
 
         TextView t1 = new TextView(this);
-        t1.setText(appName());
+        t1.setText(appName(pkg));
         t1.setTextSize(15f);
         t1.setTextColor(C_TITLE);
         t1.setIncludeFontPadding(false);
         texts.addView(t1);
 
         TextView t2 = new TextView(this);
-        t2.setText(TARGET_PKG);
+        t2.setText(pkg);
         t2.setTextSize(11f);
         t2.setTextColor(C_SUB);
         t2.setIncludeFontPadding(false);
@@ -451,7 +514,7 @@ public class SettingsActivity extends Activity {
         return r;
     }
 
-    private View openButton() {
+    private View openButton(final String pkg) {
         TextView btn = new TextView(this);
         btn.setText("打开应用");
         btn.setTextSize(14.5f);
@@ -464,7 +527,7 @@ public class SettingsActivity extends Activity {
         btn.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 try {
-                    Intent it = getPackageManager().getLaunchIntentForPackage(TARGET_PKG);
+                    Intent it = getPackageManager().getLaunchIntentForPackage(pkg);
                     if (it != null) {
                         it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(it);
@@ -485,10 +548,19 @@ public class SettingsActivity extends Activity {
         return holder;
     }
 
-    private String appName() {
+    private boolean installed(String pkg) {
+        try {
+            sCtx.getPackageManager().getPackageInfo(pkg, 0);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private String appName(String pkg) {
         try {
             PackageManager pm = getPackageManager();
-            return String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(TARGET_PKG, 0)));
+            return String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)));
         } catch (Throwable t) {
             return "未安装";
         }

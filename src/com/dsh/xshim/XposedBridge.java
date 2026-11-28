@@ -1,4 +1,4 @@
-package de.robv.android.xposed;
+package com.dsh.xshim;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
@@ -14,6 +14,9 @@ public final class XposedBridge {
     private XposedBridge() {}
 
     public static volatile XposedModule MODULE;
+
+    /** 成功挂上的 hook 数量，用于集成模式下判断到底有没有装进去 */
+    public static volatile int HOOKS = 0;
 
     public static void log(String msg) {
         try {
@@ -64,6 +67,7 @@ public final class XposedBridge {
                     .setPriority(XposedInterface.PRIORITY_DEFAULT)
                     .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
                     .intercept(new Bridge(cb));
+            HOOKS++;
             return 1;
         } catch (Throwable t) {
             log("hook 失败 " + e + " : " + t);
