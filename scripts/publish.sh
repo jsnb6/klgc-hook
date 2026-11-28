@@ -34,3 +34,17 @@ git remote -v
 echo
 echo "完成：https://github.com/$LOGIN/$NAME"
 echo "下一步（可选）：在仓库 Settings → Releases 里发一个 v1.4.1 tag，并上传 out/animrep-module.apk"
+
+# ---- 发布后自检：确认 version.json 与下载资产都能 200，避免客户端检查更新拿到 404 ----
+VNAME=$(python3 -c "import json;print(json.load(open('version.json'))['versionName'])" 2>/dev/null || echo "")
+if [ -n "$VNAME" ]; then
+  echo "== 自检 v$VNAME"
+  for U in \
+    "https://raw.githubusercontent.com/jsnb6/klgc-hook/main/version.json" \
+    "https://cdn.jsdelivr.net/gh/jsnb6/klgc-hook@main/version.json" \
+    "https://github.com/jsnb6/klgc-hook/releases/download/v$VNAME/klgc-hook-v$VNAME.apk"; do
+    C=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 40 "$U")
+    echo "  $C  $U"
+    [ "$C" = "200" ] || echo "  !! 这个地址不是 200，客户端会拿到错误"
+  done
+fi
